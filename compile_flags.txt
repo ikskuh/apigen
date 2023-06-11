@@ -1,0 +1,9 @@
+-I
+include
+-std=c11
+-Werror
+-Wall
+-Wextra
+-Wunused-parameter
+-Weverything
+-Wno-declaration-after-statement
