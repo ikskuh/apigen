@@ -98,3 +98,9 @@ extern struct apigen_Generator apigen_gen_rust;
 
 void apigen_generator_renderType(struct apigen_Generator const *generator, struct apigen_Type const *type,
                                  apigen_Stream stream, apigen_StreamWriter writer);
+
+
+                                 struct apigen_memory_arena 
+                                 {
+int dummy;
+                                 }; 
