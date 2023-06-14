@@ -13,13 +13,15 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const test_step = b.step("test", "Runs the test suite");
+
     const lexer_gen = b.addSystemCommand(&.{
         "flex",
         "--hex", //  use hexadecimal numbers instead of octal in debug outputs
         "--8bit", // generate 8-bit scanner
         "--batch", // generate batch scanner
         "--yylineno", //  track line count in yylineno
-        // "--prefix=apigen_parser_", // custom prefix instead of yy
+        "--prefix=apigen_parser_", // custom prefix instead of yy
         "--reentrant", // generate a reentrant C scanner
         "--nounistd", //  do not include <unistd.h>
         "--bison-locations", // include yylloc support.
@@ -38,6 +40,7 @@ pub fn build(b: *std.Build) void {
         "--language=c", // specify the output programming language
         "--locations", // enable location support
         // "--file-prefix=PREFIX", // specify a PREFIX for output files
+        "-Wcounterexamples",
     });
     const parser_c_source = parser_gen.addPrefixedOutputFileArg("--output=", "parser.yy.c");
 
@@ -66,6 +69,8 @@ pub fn build(b: *std.Build) void {
         &.{
             "src/apigen.c",
             "src/io.c",
+            "src/memory.c",
+            "src/base.c",
             "src/parser/parser.c",
             "src/gen/c_cpp.c",
             "src/gen/rust.c",
@@ -78,14 +83,35 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(exe);
 
-    const run_cmd = b.addRunArtifact(exe);
+    {
+        for (parser_test_files) |test_file| {
+            const run = b.addRunArtifact(exe);
+            run.addArg("--parser-test");
+            run.addFileSourceArg(.{ .path = test_file });
+            run.addCheck(.{ .expect_term = .{ .Exited = 0 } });
+            run.stdin = "";
+            test_step.dependOn(&run.step);
+        }
 
-    run_cmd.step.dependOn(b.getInstallStep());
+        {
+            const test_runner = b.addExecutable(.{
+                .name = "apidef-arena-test",
+                .target = target,
+                .optimize = .Debug, // always run tests in debug modes
+            });
+            test_runner.linkLibC();
+            test_runner.addIncludePath("src"); // HACK UNTIL INCLUDES ARE RESOLVED
+            test_runner.addIncludePath("include");
+            test_runner.addCSourceFiles(
+                &.{ "tests/arena.c", "src/base.c", "src/memory.c" },
+                &strict_cflags,
+            );
 
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
+            test_step.dependOn(&b.addRunArtifact(test_runner).step);
+        }
     }
-
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
 }
+
+const parser_test_files = [_][]const u8{
+    "tests/parser/fndocs.api",
+};

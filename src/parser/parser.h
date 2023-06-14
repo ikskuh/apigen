@@ -9,7 +9,7 @@ struct apigen_parser_ltype
 };
 
 struct apigen_parser_stype {
-    int num;
+    int integer;
     char* str;
 };
 

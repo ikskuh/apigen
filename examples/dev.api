@@ -1,0 +1,127 @@
+type pax_col_t = u32;
+
+type pax_err_t = enum(i32) {
+    /// Unknown error.
+    PAX_ERR_UNKNOWN = 1, 
+    /// All is good.
+    PAX_OK = 0, 
+    /// Buffer pointer is null.
+    PAX_ERR_NOBUF = -1, 
+    /// Out of memory.
+    PAX_ERR_NOMEM = -2, 
+    /// Invalid parameters.
+    PAX_ERR_PARAM = -3, 
+    /// Infinite parameters.
+    PAX_ERR_INF = -4, 
+    /// Out of bounds parameters.
+    PAX_ERR_BOUNDS = -5, 
+    /// Matrix stack underflow.
+    PAX_ERR_UNDERFLOW = -6, 
+    /// Out of data.
+    PAX_ERR_NODATA = -7, 
+    /// Image decoding error.
+    PAX_ERR_DECODE = -8, 
+    /// Unsupported operation (or not compiled in).
+    PAX_ERR_UNSUPPORTED = -9, 
+    /// Corruption in buffer.
+    PAX_ERR_CORRUPT = -10, 
+    /// Image encoding error.
+    PAX_ERR_ENCODE = -11, 
+};
+
+type pax_bufype = enum {
+    PAX_BUF_1_PAL = 0x20000001,
+    PAX_BUF_2_PAL = 0x20000002,
+    PAX_BUF_4_PAL = 0x20000004,
+    PAX_BUF_8_PAL = 0x20000008,
+    PAX_BUF_16_PAL = 0x20000010,
+    PAX_BUF_1_GREY = 0x10000001,
+};
+
+fn pax_join() void;
+fn pax_join(a: u32) void;
+fn pax_join(a: u32,) void;
+fn pax_join(a: u32, b: u32) void;
+fn pax_join(a: u32, b: u32,) void;
+fn pax_join(a: u32, b: u32,) void;
+
+/// function docs without parameter documentation
+fn pax_join() void;
+
+/// function docs without parameter documentation
+fn pax_join(a: u32) void;
+
+/// function docs without parameter documentation
+fn pax_join(a: u32,) void;
+
+/// function docs without parameter documentation
+fn pax_join(a: u32, b: u32) void;
+
+/// function docs without parameter documentation
+fn pax_join(a: u32, b: u32,) void;
+
+/// function docs without parameter documentation
+fn pax_join(a: u32, b: u32,) void;
+
+
+
+/// function docs with a documented, b undocumented
+fn pax_join(
+    /// a docs
+    a: u32
+) void;
+
+/// function docs with a documented, b undocumented
+fn pax_join(
+    /// a docs
+    a: u32,
+) void;
+
+/// function docs with a documented, b undocumented
+fn pax_join(
+    /// a docs
+    a: u32,
+    b: u32
+) void;
+
+/// function docs with a documented, b undocumented
+fn pax_join(
+    /// a docs
+    a: u32, 
+    b: u32,
+) void;
+
+
+
+/// function docs with a and b documented
+fn pax_join(
+    /// a docs
+    a: u32,
+    /// b docs
+    b: u32,
+) void;
+
+
+/// function docs with a and b documented
+fn pax_join(
+    /// a docs
+    a: u32,
+    /// b docs
+    b: u32
+) void;
+
+/// function docs with a and b documented
+fn pax_join(
+    /// a docs
+    a: u32, 
+    /// b docs
+    b: u32,
+) void;
+
+/// function docs with a and b documented
+fn pax_join(
+    /// a docs
+    a: u32,
+    /// b docs
+    b: u32,
+) void;

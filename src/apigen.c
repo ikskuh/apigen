@@ -24,19 +24,42 @@ void apigen_generator_renderType(struct apigen_Generator const *generator, struc
 
 int main(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
+    struct apigen_memory_arena central_arena;
+    apigen_memory_arena_init(&central_arena);
 
-    apigen_generator_renderType(&apigen_gen_zig, &(struct apigen_Type){.id = apigen_typeid_struct}, NULL,
-                                apigen_io_writeStdOut);
-    apigen_io_writeStdOut(NULL, "\r\n", 2);
+    if(argc == 3 && !strcmp(argv[1], "--parser-test")) {
+
+        FILE * f = fopen(argv[2], "rb");
+        if(f == NULL) {
+            fprintf(stderr, "error: %s not found!\n", argv[2]);
+            return 1;
+        }
+
+        struct apigen_parser_state state = {
+            .file = f,
+            .file_name = argv[2],
+            .ast_arena = &central_arena,
+        };
+
+        int result = apigen_parse(&state);
+
+        fclose(f);
+
+        return result;
+    }
+
+    // apigen_generator_renderType(&apigen_gen_zig, &(struct apigen_Type){.id = apigen_typeid_struct}, NULL,
+    //                             apigen_io_writeStdOut);
+    // apigen_io_writeStdOut(NULL, "\r\n", 2);
+
+    struct apigen_parser_state state = {
+        .file = stdin,
+        .file_name = "stdin",
+        .ast_arena = &central_arena,
+    };
+
+    int foo = apigen_parse(&state);
+    fprintf(stderr, "lex result: %d\n", foo);
 
     return 0;
-}
-
-void APIGEN_NORETURN apigen_panic(char const *msg)
-{
-    (void)fprintf(stderr, "\r\nAPIGEN PANIC: %s\r\n\r\n", msg);
-    (void)fflush(stderr);
-    exit(1);
 }

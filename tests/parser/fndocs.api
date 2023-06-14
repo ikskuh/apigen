@@ -1,0 +1,87 @@
+fn pax_join() void;
+fn pax_join(a: u32) void;
+fn pax_join(a: u32,) void;
+fn pax_join(a: u32, b: u32) void;
+fn pax_join(a: u32, b: u32,) void;
+fn pax_join(a: u32, b: u32,) void;
+
+/// function docs without parameter documentation
+fn pax_join() void;
+
+/// function docs without parameter documentation
+fn pax_join(a: u32) void;
+
+/// function docs without parameter documentation
+fn pax_join(a: u32,) void;
+
+/// function docs without parameter documentation
+fn pax_join(a: u32, b: u32) void;
+
+/// function docs without parameter documentation
+fn pax_join(a: u32, b: u32,) void;
+
+/// function docs without parameter documentation
+fn pax_join(a: u32, b: u32,) void;
+
+
+
+/// function docs with a documented, b undocumented
+fn pax_join(
+    /// a docs
+    a: u32
+) void;
+
+/// function docs with a documented, b undocumented
+fn pax_join(
+    /// a docs
+    a: u32,
+) void;
+
+/// function docs with a documented, b undocumented
+fn pax_join(
+    /// a docs
+    a: u32,
+    b: u32
+) void;
+
+/// function docs with a documented, b undocumented
+fn pax_join(
+    /// a docs
+    a: u32, 
+    b: u32,
+) void;
+
+
+
+/// function docs with a and b documented
+fn pax_join(
+    /// a docs
+    a: u32,
+    /// b docs
+    b: u32,
+) void;
+
+
+/// function docs with a and b documented
+fn pax_join(
+    /// a docs
+    a: u32,
+    /// b docs
+    b: u32
+) void;
+
+/// function docs with a and b documented
+fn pax_join(
+    /// a docs
+    a: u32, 
+    /// b docs
+    b: u32,
+) void;
+
+/// function docs with a and b documented
+fn pax_join(
+    /// a docs
+    a: u32,
+    /// b docs
+    b: u32,
+) void;
