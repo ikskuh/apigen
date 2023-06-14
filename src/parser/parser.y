@@ -94,7 +94,9 @@ enum_items_inner:
 ;
 
 enum_item:
-    docs IDENTIFIER '=' value
+    docs IDENTIFIER
+|        IDENTIFIER
+|   docs IDENTIFIER '=' value
 |        IDENTIFIER '=' value
 ;
 

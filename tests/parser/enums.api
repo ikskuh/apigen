@@ -1,0 +1,62 @@
+
+type name = enum { a  };
+type name = enum { a, };
+
+type name = enum(i32) { a  };
+type name = enum(i32) { a, };
+
+type name = enum { a, b  };
+type name = enum { a, b, };
+
+type name = enum(i32) { a, b  };
+type name = enum(i32) { a, b, };
+
+type name = enum { a, b, c  };
+type name = enum { a, b, c, };
+
+type name = enum(i32) { a, b, c  };
+type name = enum(i32) { a, b, c, };
+
+
+type name = enum { a = 0  };
+type name = enum { a = 0, };
+
+type name = enum(i32) { a = 1  };
+type name = enum(i32) { a = 1, };
+
+type name = enum { a = 0, b = 1  };
+type name = enum { a = 0, b = 1, };
+
+type name = enum(i32) { a = 0, b = 1  };
+type name = enum(i32) { a = 0, b = 1, };
+
+type name = enum { a = 0, b = 1, c = 2  };
+type name = enum { a = 0, b = 1, c = 2, };
+
+type name = enum(i32) { a = 0, b = 1, c = 2  };
+type name = enum(i32) { a = 0, b = 1, c = 2, };
+
+
+type name = enum { a, b = 1  };
+type name = enum { a, b = 1, };
+
+type name = enum(i32) { a, b = 1  };
+type name = enum(i32) { a, b = 1, };
+
+type name = enum { a, b = 1, c = 2  };
+type name = enum { a, b = 1, c = 2, };
+
+type name = enum(i32) { a, b = 1, c = 2  };
+type name = enum(i32) { a, b = 1, c = 2, };
+
+type name = enum { a = 0, b  };
+type name = enum { a = 0, b, };
+
+type name = enum(i32) { a = 0, b  };
+type name = enum(i32) { a = 0, b, };
+
+type name = enum { a = 0, b, c  };
+type name = enum { a = 0, b, c, };
+
+type name = enum(i32) { a = 0, b, c  };
+type name = enum(i32) { a = 0, b, c, };

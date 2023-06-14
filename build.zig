@@ -114,4 +114,6 @@ pub fn build(b: *std.Build) void {
 
 const parser_test_files = [_][]const u8{
     "tests/parser/fndocs.api",
+    "tests/parser/enums.api",
+    "tests/parser/enumdocs.api",
 };

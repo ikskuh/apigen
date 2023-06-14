@@ -1,0 +1,24 @@
+
+type name = enum {
+    /// doc
+    a
+};
+
+type name = enum {
+    /// doc
+    a,
+};
+
+type name = enum {
+    /// doc
+    a,
+    /// doc
+    b
+};
+
+type name = enum {
+    /// doc
+    a,
+    /// doc 
+    b
+};
