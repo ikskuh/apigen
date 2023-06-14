@@ -173,7 +173,7 @@ type pax_col_union = union {
 // Function pointer for shader callback.
 // Tint is the color parameter to the pax_shade_xxx function.
 // It is assumed that color math is done by the shader based on the "existing" parameter.
-type pax_shader_func_v1_t = fn (tint: pax_col_t, existing: pax_col_t, x: c_int, y: c_int, u: f32, v: f32, args: ?*anyopaque) pax_col_t;
+// type pax_shader_func_v1_t = fn (tint: pax_col_t, existing: pax_col_t, x: c_int, y: c_int, u: f32, v: f32, args: ?*anyopaque) pax_col_t;
 
 // // A simple linked list data structure used to store matrices in a stack.
 type matrix_stack_2d = struct {
@@ -185,7 +185,7 @@ type matrix_stack_2d = struct {
 // Stores pixel data and matrix information among other things.
 type pax_buf = struct {
     // Buffer type, color modes, etc.
-    type: pax_bufype,
+    @"type": pax_bufype,
     // Whether to perform free on the buffer on deinit.
     do_free: bool,
     // Whether to perform free on the palette on deinit.
@@ -282,7 +282,7 @@ type pax_bmpv = struct {
 // Describes a range of glyphs in a font.
 type pax_font_range = struct {
     // The type of font range.
-    type: pax_font_type,
+    @"type": pax_font_type,
     // First character in range.
     start: u32,
     // Last character in range.
@@ -326,7 +326,7 @@ type pax_font = struct {
 // You should run pax_join before making the change.
 type pax_task = struct {
     buffer: *pax_buf, // The buffer to apply this task to.
-    type: pax_task_type_t, // The type of thing to do.
+    @"type": pax_task_type_t, // The type of thing to do.
     color: pax_col_t, // Color to use.
     shader: pax_shader_t, // Shader to use.
     use_shader: bool, // Whether to use a shader.
@@ -362,13 +362,13 @@ fn pax_join() void;
 fn pax_enable_multicore(core: c_int) void;
 fn pax_disable_multicore() void;
 
-fn pax_buf_init(buf: *pax_buf, mem: ?*anyopaque, width: c_int, height: c_int, type: pax_buftype) void;
+fn pax_buf_init(buf: *pax_buf, mem: ?*anyopaque, width: c_int, height: c_int, @"type": pax_buftype) void;
 
 fn pax_buf_reversed(buf: *pax_buf, reversed_endianness: bool) void;
 
 fn pax_buf_destroy(buf: *pax_buf) void;
 
-fn pax_buf_convert(dst: *pax_buf, src: *pax_buf, type: pax_buftype) void;
+fn pax_buf_convert(dst: *pax_buf, src: *pax_buf, @"type": pax_buftype) void;
 
 fn pax_buf_get_width(buf: *const pax_buf) c_int;
 

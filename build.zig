@@ -113,7 +113,17 @@ pub fn build(b: *std.Build) void {
 }
 
 const parser_test_files = [_][]const u8{
-    "tests/parser/fndocs.api",
+    "tests/parser/primitives.api",
+
+    // compounds:
+    "tests/parser/functions.api",
     "tests/parser/enums.api",
+    "tests/parser/structs.api",
+    "tests/parser/unions.api",
+
+    // doc comments:
+    "tests/parser/functiondocs.api",
     "tests/parser/enumdocs.api",
+    "tests/parser/structdocs.api",
+    "tests/parser/uniondocs.api",
 };

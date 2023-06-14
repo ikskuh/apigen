@@ -1,0 +1,42 @@
+
+type name = union {
+    /// documented
+    a: u32 
+};
+
+type name = union {
+    /// documented
+    a: u32,
+};
+
+type name = union { 
+    /// documented
+    a: u32,
+    /// also documented
+    b: u32 
+};
+
+type name = union { 
+    /// documented
+    a: u32,
+    /// also documented
+    b: u32,
+};
+
+type name = union { 
+    /// more docs!
+    a: u32,
+    /// more docs!
+    b: u32,
+    /// more docs!
+    c: u32
+};
+
+type name = union { 
+    /// more docs!
+    a: u32,
+    /// more docs!
+    b: u32,
+    /// more docs!
+    c: u32,
+};

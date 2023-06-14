@@ -1,0 +1,7 @@
+fn pax_join() void;
+fn pax_join(a: u32) void;
+fn pax_join(a: u32,) void;
+fn pax_join(a: u32, b: u32) void;
+fn pax_join(a: u32, b: u32,) void;
+fn pax_join(a: u32, b: u32,) void;
+

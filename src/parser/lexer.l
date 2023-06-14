@@ -39,6 +39,8 @@ static inline char * strdup(char const * string)
 %option yylineno
 
 ident   [A-Za-z_][A-Za-z0-9_]*
+atident @\"[^\"]+\"
+
 dec_int -?[0-9_]+
 hex_int -?0x[0-9_]+
 bin_int -?0b[0-9_]+
@@ -47,6 +49,10 @@ bin_int -?0b[0-9_]+
 %%
 
 "///"[^\n]* { return DOCCOMMENT; }
+
+"//"[^\n]*  { }
+
+{atident}   { return IDENTIFIER; }
 
 const       { return KW_CONST; }
 var         { return KW_VAR; }
@@ -67,6 +73,7 @@ struct      { return KW_STRUCT; }
 ";"         { return yytext[0]; }
 ","         { return yytext[0]; }
 ":"         { return yytext[0]; }
+"?"         { return yytext[0]; }
 
 {ident}     { return IDENTIFIER; }
 {hex_int}   { return INTEGER; }
@@ -77,4 +84,3 @@ struct      { return KW_STRUCT; }
 .           { printf("unexpected char: '%s'", yytext); return -1; }
 
 %%
-// "//"[^\n]*  { }

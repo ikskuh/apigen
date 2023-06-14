@@ -49,8 +49,8 @@ file:
 ;
 
 declaration:
-    KW_CONST    IDENTIFIER '=' type ';'
-|   KW_VAR      IDENTIFIER '=' type ';'
+    KW_CONST    IDENTIFIER ':' type ';'
+|   KW_VAR      IDENTIFIER ':' type ';'
 |   KW_TYPE     IDENTIFIER '=' type ';'
 |   KW_FN       IDENTIFIER '(' field_list ')' type ';'
 |   docs KW_CONST    IDENTIFIER '=' type ';'
@@ -60,11 +60,28 @@ declaration:
 ;
 
 type:
-    IDENTIFIER
+    primitive_type
 |   KW_ENUM   '(' IDENTIFIER ')' '{' enum_items '}'
 |   KW_ENUM                      '{' enum_items '}'
 |   KW_UNION                     '{' field_list '}'
 |   KW_STRUCT                    '{' field_list '}'
+;
+
+primitive_type:
+    '*'                       KW_CONST type 
+|       '[' '*' ']'           KW_CONST type 
+|       '[' '*' ':' value ']' KW_CONST type 
+|   '?' '*'                   KW_CONST type 
+|   '?' '[' '*' ']'           KW_CONST type 
+|   '?' '[' '*' ':' value ']' KW_CONST type 
+|       '*'                            type 
+|       '[' '*' ']'                    type 
+|       '[' '*' ':' value ']'          type 
+|   '?' '*'                            type 
+|   '?' '[' '*' ']'                    type  
+|   '?' '[' '*' ':' value ']'          type
+|   '[' value ']'                      type
+|   IDENTIFIER
 ;
 
 field_list:

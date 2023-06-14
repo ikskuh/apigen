@@ -1,33 +1,37 @@
+// pax_types.h
+
+// #define M_PI 3.141592653589793
+// #define PAX_FONT_LOADER_VERSION 1
+// #define PAX_SHADER_VERSION 1
+// #define PAX_RENDERER_ID_SWR 0x00
+
+// #define PAX_VERSION_STR "1.1.0"
+// #define PAX_VERSION_NUMBER 110
+// #define PAX_VERSION_IS_SNAPSHOT false
+// #define PAX_VERSION_MAJOR 1
+// #define PAX_VERSION_MINOR 1
+// #define PAX_VERSION_PATCH 0
+
 type pax_col_t = u32;
 
 type pax_err_t = enum(i32) {
-    /// Unknown error.
-    PAX_ERR_UNKNOWN = 1, 
-    /// All is good.
-    PAX_OK = 0, 
-    /// Buffer pointer is null.
-    PAX_ERR_NOBUF = -1, 
-    /// Out of memory.
-    PAX_ERR_NOMEM = -2, 
-    /// Invalid parameters.
-    PAX_ERR_PARAM = -3, 
-    /// Infinite parameters.
-    PAX_ERR_INF = -4, 
-    /// Out of bounds parameters.
-    PAX_ERR_BOUNDS = -5, 
-    /// Matrix stack underflow.
-    PAX_ERR_UNDERFLOW = -6, 
-    /// Out of data.
-    PAX_ERR_NODATA = -7, 
-    /// Image decoding error.
-    PAX_ERR_DECODE = -8, 
-    /// Unsupported operation (or not compiled in).
-    PAX_ERR_UNSUPPORTED = -9, 
-    /// Corruption in buffer.
-    PAX_ERR_CORRUPT = -10, 
-    /// Image encoding error.
-    PAX_ERR_ENCODE = -11, 
+    PAX_ERR_UNKNOWN = 1, // Unknown error.
+    PAX_OK = 0, // All is good.
+    PAX_ERR_NOBUF = -1, // Buffer pointer is null.
+    PAX_ERR_NOMEM = -2, // Out of memory.
+    PAX_ERR_PARAM = -3, // Invalid parameters.
+    PAX_ERR_INF = -4, // Infinite parameters.
+    PAX_ERR_BOUNDS = -5, // Out of bounds parameters.
+    PAX_ERR_UNDERFLOW = -6, // Matrix stack underflow.
+    PAX_ERR_NODATA = -7, // Out of data.
+    PAX_ERR_DECODE = -8, // Image decoding error.
+    PAX_ERR_UNSUPPORTED = -9, // Unsupported operation (or not compiled in).
+    PAX_ERR_CORRUPT = -10, // Corruption in buffer.
+    PAX_ERR_ENCODE = -11, // Image encoding error.
 };
+
+// #define PAX_RESET_TOP 0 // More verbose way of saying reset only the top matrix.
+// #define PAX_RESET_ALL 1 // More verbose way of saying reset the whole matrix stack.
 
 type pax_bufype = enum {
     PAX_BUF_1_PAL = 0x20000001,
@@ -36,92 +40,452 @@ type pax_bufype = enum {
     PAX_BUF_8_PAL = 0x20000008,
     PAX_BUF_16_PAL = 0x20000010,
     PAX_BUF_1_GREY = 0x10000001,
+    PAX_BUF_2_GREY = 0x10000002,
+    PAX_BUF_4_GREY = 0x10000004,
+    PAX_BUF_8_GREY = 0x10000008,
+    PAX_BUF_8_332RGB = 0x00033208,
+    PAX_BUF_16_565RGB = 0x00056510,
+    PAX_BUF_4_1111ARGB = 0x00111104,
+    PAX_BUF_8_2222ARGB = 0x00444408,
+    PAX_BUF_16_4444ARGB = 0x00444410,
+    PAX_BUF_32_8888ARGB = 0x00888820,
 };
 
+// Buffer orientation settings.
+type pax_orientation = enum {
+    PAX_O_UPRIGHT, // No change in orientation.
+    PAX_O_ROT_CCW, // Counter-clockwise rotation.
+    PAX_O_ROT_HALF, // Half turn rotation.
+    PAX_O_ROT_CW, // Clockwise rotation.
+    PAX_O_FLIP_H, // Flip horizontally.
+    PAX_O_ROT_CCW_FLIP_H, // Counter-clockwise rotation then flip horizontally.
+    PAX_O_ROT_HALF_FLIP_H, // Half turn rotation then flip horizontally.
+    PAX_O_ROT_CW_FLIP_H, // Clockwise rotation then flip horizontally.
+};
+
+// // Flip vertically.
+// #define PAX_O_FLIP_V PAX_O_ROT_HALF_FLIP_H
+// // Counter-clockwise rotation then flip vertically.
+// #define PAX_O_ROT_CCW_FLIP_V PAX_O_ROT_CW_FLIP_H
+// // Half turn rotation then flip vertically.
+// #define PAX_O_ROT_HALF_FLIP_V PAX_O_FLIP_H
+// // Clockwise rotation then flip vertically.
+// #define PAX_O_ROT_CW_FLIP_V PAX_O_ROT_CCW_FLIP_H
+
+// // Flip horizontally then counter-clockwise rotation.
+// #define PAX_O_FLIP_H_ROT_CCW PAX_O_ROT_CW_FLIP_H
+// // Flip horizontally then half turn rotation.
+// #define PAX_O_FLIP_H_ROT_HALF PAX_O_ROT_HALF_FLIP_H
+// // Flip horizontally then clockwise rotation.
+// #define PAX_O_FLIP_H_ROT_CW PAX_O_ROT_CCW_FLIP_H
+
+// // Flip vertically then counter-clockwise rotation.
+// #define PAX_O_FLIP_V_ROT_CCW PAX_O_ROT_CCW_FLIP_H
+// // Flip vertically then half turn rotation.
+// #define PAX_O_FLIP_V_ROT_HALF PAX_O_FLIP_H
+// // Flip vertically then clockwise rotation.
+// #define PAX_O_FLIP_V_ROT_CW PAX_O_ROT_CW_FLIP_H
+
+// // A way in which to perform word wrap.
+type pax_word_wrap = enum {
+    PAX_WW_NONE, // Do not perform word wrap.
+    PAX_WW_LETTER, // Word wrap by the letter.
+    PAX_WW_WORD, // Word wrap by the word.
+    PAX_WW_JUSTIFY, // Word wrap with inter-word justfication.
+};
+
+// // Type of task to do.
+// // Things like text and arcs will decompose to rects and triangles.
+type pax_task_type = enum {
+    PAX_TASK_RECT, // Rectangle draw.
+    PAX_TASK_TRI, // Triangle draw.
+    PAX_TASK_STOP, // Stop MCR workder.
+};
+
+// // Distinguishes between ways to draw fonts.
+type pax_font_type = enum {
+    PAX_FONT_TYPE_BITMAP_MONO, // For monospace bitmapped fonts.
+    PAX_FONT_TYPE_BITMAP_VAR, // For variable pitch bitmapped fonts.
+};
+
+// typedef enum   pax_bufype    pax_buftype;
+// typedef enum   pax_orientation pax_orientation;
+// typedef enum   pax_word_wrap   pax_word_wrap_t;
+// typedef enum   pax_task_type   pax_task_type_t;
+// typedef enum   pax_font_type   pax_font_type_t;
+
+// // Promises that the shape will be fully opaque when drawn.
+// #define PAX_PROMISE_OPAQUE		0x01
+// // Promises that the shape will be fully transparent when drawn.
+// #define PAX_PROMISE_INVISIBLE	0x02
+// // Promises that the shape will be drawn as a cutout (either fully opaque or fully transparent for a given pixel).
+// #define PAX_PROMISE_CUTOUT		0x03
+// // Promises that the shader does not need the UVs.
+// #define PAX_PROMISE_IGNORE_UVS	0x04
+// // Promises that the shader ignores the existing color.
+// #define PAX_PROMISE_IGNORE_BASE	0x08
+
+// // Union for splitting ARGB.
+type pax_col_union = union {
+    // #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    argb: struct {
+        a: u8,
+        r: u8,
+        g: u8,
+        b: u8,
+    },
+    // #else
+    bgra: struct {
+        b: u8,
+        g: u8,
+        r: u8,
+        a: u8,
+    },
+    // #endif
+    col: pax_col_t,
+};
+
+// // Helper for color conversion.
+// // Used for both buffer type to ARGB and vice versa.
+// // Buffer argument is mostly used for images with palette.
+// typedef pax_col_t (*pax_col_conv_t)(const pax_buf *buf, pax_col_t color);
+
+// // Helper for setting pixels in drawing routines.
+// // Used to allow optimising away alpha in colors.
+// typedef void (*pax_setter_t)(pax_buf *buf, pax_col_t color, c_int x, c_int y);
+
+// // Helper for getting pixels in drawing routines.
+// // Used to allow optimising away inline branching.
+// typedef pax_col_t (*pax_index_getter_t)(const pax_buf *buf, c_int index);
+
+// // Helper for setting pixels in drawing routines.
+// // Used to allow optimising away color conversion.
+// typedef void (*pax_index_setter_t)(pax_buf *buf, pax_col_t color, c_int index);
+
+// // Function pointer for shader promises.
+// // The promise function will provide a bitfield answer to contextual questions where false is the safe option.
+// typedef uint64_t (*pax_promise_func_t)(pax_buf *buf, pax_col_t tint, void *args);
+
+// // Function pointer for shader callback.
+// // Tint is the color parameter to the pax_shade_xxx function.
+// typedef pax_col_t (*pax_shader_func_v0_t)(pax_col_t tint, c_int x, c_int y, float u, float v, void *args);
+
+// Function pointer for shader callback.
+// Tint is the color parameter to the pax_shade_xxx function.
+// It is assumed that color math is done by the shader based on the "existing" parameter.
+// type pax_shader_func_v1_t = fn (tint: pax_col_t, existing: pax_col_t, x: c_int, y: c_int, u: f32, v: f32, args: ?*anyopaque) pax_col_t;
+
+// // A simple linked list data structure used to store matrices in a stack.
+type matrix_stack_2d = struct {
+    parent: ?*matrix_stack_2d,
+    value: matrix_2d,
+};
+
+// The main data structure in PAX.
+// Stores pixel data and matrix information among other things.
+type pax_buf = struct {
+    // Buffer type, color modes, etc.
+    @"type": pax_bufype,
+    // Whether to perform free on the buffer on deinit.
+    do_free: bool,
+    // Whether to perform free on the palette on deinit.
+    do_free_pal: bool,
+    // Whether to reverse the endianness of the buffer.
+    reverse_endianness: bool,
+    buffer: union {
+        buf_8bpp: [*]u8, // Shorthand for 8bpp buffer.
+
+        buf_16bpp: [*]u16, // Shorthand for 16bpp buffer.
+
+        buf_32bpp: [*]u32, // Shorthand for 32bpp buffer.
+        // Buffer pointer.
+        buf: *anyopaque,
+    },
+    // Bits per pixel.
+    bpp: c_int,
+
+    // Pallette for buffers with a pallette type.
+    palette: [*]pax_col_t,
+    // The number of colors in the pallette.
+    palette_size: usize,
+
+    // Width in pixels.
+    width: c_int,
+    // Height    in pixels.
+    height: c_int,
+
+    // Dirty x (top left).
+    dirty_x0: c_int,
+    // Dirty y (top left).
+    dirty_y0: c_int,
+    // Dirty x (bottom right).
+    dirty_x1: c_int,
+    // Dirty y (bottom right).
+    dirty_y1: c_int,
+
+    // Color to buffer function to use.
+    col2buf: pax_col_conv_t,
+    // Buffer to color function to use.
+    buf2col: pax_col_conv_t,
+
+    // Setter to use to write a pixel index.
+    setter: pax_index_setter_t,
+    // Getter to use to read a pixel index.
+    getter: pax_index_getter_t,
+
+    // Clip rectangle.
+    // Shapes are only drawn inside the clip rectangle.
+    // This excludes PNG decoding functions.
+    clip: pax_recti,
+    // Matrix stack.
+    // The top most entry is used to transform shapes.
+    stack_2d: matrix_stack_2d_t,
+
+    // Orientation setting.
+    orientation: pax_orientation,
+};
+
+// A shader definition, used by pax_shade_ methods.
+type pax_shader = struct {
+    // Version of the shader schema this was made for.
+    schema_version: u8,
+    // Bitwise inversion of schema version.
+    schema_complement: u8,
+    // Rendering type of this shader.
+    renderer_id: u8,
+    // Optional callback which is used to make contextual promises.
+    promise_callback: ?*anyopaque,
+    // Callback which defines the colors to output.
+    callback: ?*anyopaque,
+    // Shader arguments.
+    callback_args: ?*anyopaque,
+    // Whether to promise that an alpha of 0 in tint will return a fully transparent.
+    alpha_promise_0: bool,
+    // Whether to promise that an alpha of 255 in tint will return a fully opaque.
+    alpha_promise_255: bool,
+};
+
+// Information relevant to each character of a variable pitch font.
+type pax_bmpv = struct {
+    // The position of the drawn portion.
+    draw_x: i8,
+    draw_y: i8,
+
+    // The size of the drawn portion.
+    draw_w: u8,
+    draw_h: u8,
+
+    measured_width: u8, // The measured width of the glyph.
+    index: usize, // The index in the glyphs data for this glyph.
+};
+
+// Describes a range of glyphs in a font.
+type pax_font_range = struct {
+    // The type of font range.
+    @"type": pax_font_type,
+    // First character in range.
+    start: u32,
+    // Last character in range.
+    end: u32,
+    bitmap: union {
+        // Monospace, bitmapped fonts.
+        mono: struct {
+            glyphs: [*]const u8, // The raw glyph bytes.
+            width: u8, // The width of all glyphs.
+            height: u8, // The height of all glyphs.
+            bpp: u8, // The Bits Per Pixel of all glyphs.
+        },
+        // Variable pitch, bitmapped fonts.
+        @"var": struct {
+            glyphs: [*]const u8, // The raw glyph bytes.
+            dims: *const pax_bmpv, // Additional dimensions defined per glyph.
+            height: u8, // The height of all glyphs.
+            bpp: u8, // The Bits Per Pixel of all glyphs.
+        },
+    },
+};
+
+// Information relevant for the entirety of each font.
+type pax_font = struct {
+    // The searchable name of the font.
+    name: [*:0]const u8,
+    // The number of ranges included in the font.
+    n_ranges: usize,
+    // The ranges included in the font.
+    ranges: [*]const pax_font_range,
+    // Default point size.
+    default_size: u16,
+    // Whether or not it is recommended to use antialiasing.
+    // Applies to pax_draw_text, but not it's variants.
+    recommend_aa: bool,
+};
+
+// A task to perform, used by multicore rendering.
+// Every task has pre-transformed co-ordinates.
+// If you change the shader object's content (AKA the value that args points to),
+// You should run pax_join before making the change.
+type pax_task = struct {
+    buffer: *pax_buf, // The buffer to apply this task to.
+    @"type": pax_task_type_t, // The type of thing to do.
+    color: pax_col_t, // Color to use.
+    shader: pax_shader_t, // Shader to use.
+    use_shader: bool, // Whether to use a shader.
+    // UVs to use.
+    uvs: union {
+        quad: pax_quadf, // UVs to use for rects and arcs.
+        tri: pax_trif, // UVs to use for triangle.
+    },
+    // Additional parameters:
+    shape: [8]f32, // This is an array of floats for X, Y, and dimensions of shapes.
+    shape_len: usize, // Number of floats in the shape array.
+};
+
+// Context used at drawing time for shaders.
+type pax_shader_ctx = struct {
+    callback: pax_shader_func_v1_t, // The callback internally used per pixel.
+    callback_args: ?*anyopaque, // The args to throw at the callback.
+    skip: bool, // Whether to skip drawing.
+    do_getter: bool, // Whether to do a get the pixel value for merging.
+};
+
+// // The absolute minimum possible size a valid font can be in memory.
+// #define PAX_FONT_LOADER_MINUMUM_SIZE (sizeof(pax_font_t) + sizeof(pax_font_range_t) + 3)
+
+// pax_gfx.h
+
+var pax_last_error: pax_err_t;
+
+fn pax_desc_err(err_code: pax_err_t) ?[*:0]const c_char;
+
 fn pax_join() void;
-fn pax_join(a: u32) void;
-fn pax_join(a: u32,) void;
-fn pax_join(a: u32, b: u32) void;
-fn pax_join(a: u32, b: u32,) void;
-fn pax_join(a: u32, b: u32,) void;
 
-/// function docs without parameter documentation
-fn pax_join() void;
+fn pax_enable_multicore(core: c_int) void;
+fn pax_disable_multicore() void;
 
-/// function docs without parameter documentation
-fn pax_join(a: u32) void;
+fn pax_buf_init(buf: *pax_buf, mem: ?*anyopaque, width: c_int, height: c_int, @"type": pax_buftype) void;
 
-/// function docs without parameter documentation
-fn pax_join(a: u32,) void;
+fn pax_buf_reversed(buf: *pax_buf, reversed_endianness: bool) void;
 
-/// function docs without parameter documentation
-fn pax_join(a: u32, b: u32) void;
+fn pax_buf_destroy(buf: *pax_buf) void;
 
-/// function docs without parameter documentation
-fn pax_join(a: u32, b: u32,) void;
+fn pax_buf_convert(dst: *pax_buf, src: *pax_buf, @"type": pax_buftype) void;
 
-/// function docs without parameter documentation
-fn pax_join(a: u32, b: u32,) void;
+fn pax_buf_get_width(buf: *const pax_buf) c_int;
 
+fn pax_buf_get_height(buf: *const pax_buf) c_int;
 
+fn pax_buf_get_widthf(buf: *const pax_buf) f32;
 
-/// function docs with a documented, b undocumented
-fn pax_join(
-    /// a docs
-    a: u32
-) void;
+fn pax_buf_get_heightf(buf: *const pax_buf) f32;
 
-/// function docs with a documented, b undocumented
-fn pax_join(
-    /// a docs
-    a: u32,
-) void;
+fn pax_buf_get_type(buf: *const pax_buf) pax_bufype;
 
-/// function docs with a documented, b undocumented
-fn pax_join(
-    /// a docs
-    a: u32,
-    b: u32
-) void;
+fn pax_buf_get_pixels(buf: *const pax_buf) *const anyopaque;
 
-/// function docs with a documented, b undocumented
-fn pax_join(
-    /// a docs
-    a: u32, 
-    b: u32,
-) void;
+fn pax_buf_get_pixels_rw(buf: *pax_buf) *anyopaque;
 
+fn pax_buf_get_size(buf: *const pax_buf) usize;
 
+fn pax_buf_set_orientation(buf: *pax_buf, x: pax_orientation) void;
 
-/// function docs with a and b documented
-fn pax_join(
-    /// a docs
-    a: u32,
-    /// b docs
-    b: u32,
-) void;
+fn pax_buf_get_orientation(buf: *const pax_buf) pax_orientation;
 
+fn pax_buf_scroll(buf: *pax_buf, placeholder: pax_col_t, x: c_int, y: c_int) void;
 
-/// function docs with a and b documented
-fn pax_join(
-    /// a docs
-    a: u32,
-    /// b docs
-    b: u32
-) void;
+fn pax_clip(buf: *pax_buf, x: c_int, y: c_int, width: c_int, height: c_int) void;
 
-/// function docs with a and b documented
-fn pax_join(
-    /// a docs
-    a: u32, 
-    /// b docs
-    b: u32,
-) void;
+fn pax_get_clip(buf: *const pax_buf) pax_recti;
 
-/// function docs with a and b documented
-fn pax_join(
-    /// a docs
-    a: u32,
-    /// b docs
-    b: u32,
-) void;
+fn pax_noclip(buf: *pax_buf) void;
+
+fn pax_is_dirty(buf: *const pax_buf) bool;
+
+fn pax_get_dirty(buf: *const pax_buf) pax_recti;
+
+fn pax_mark_clean(buf: *pax_buf) void;
+
+fn pax_mark_dirty0(buf: *pax_buf) void;
+
+fn pax_mark_dirty1(buf: *pax_buf, x: c_int, y: c_int) void;
+
+fn pax_mark_dirty2(buf: *pax_buf, x: c_int, y: c_int, width: c_int, height: c_int) void;
+
+fn pax_col_hsv(h: u8, s: u8, v: u8) pax_col_t;
+
+fn pax_col_ahsv(a: u8, h: u8, s: u8, v: u8) pax_col_t;
+
+fn pax_col_hsv_alt(h: u16, s: u8, v: u8) pax_col_t;
+
+fn pax_col_ahsv_alt(a: u8, h: u16, s: u8, v: u8) pax_col_t;
+
+fn pax_undo_ahsv(in: pax_col_t, a: *u8, h: *u8, s: *u8, v: *u8) void;
+
+fn pax_undo_hsv(in: pax_col_t, h: *u8, s: *u8, v: *u8) void;
+
+fn pax_undo_ahsv_alt(in: pax_col_t, a: *u8, h: *u8, s: *u8, v: *u8) void;
+
+fn pax_undo_hsv_alt(in: pax_col_t, h: *u8, s: *u8, v: *u8) void;
+
+fn pax_col_lerp(part: u8, from: pax_col_t, to: pax_col_t) pax_col_t;
+
+fn pax_col_merge(base: pax_col_t, top: pax_col_t) pax_col_t;
+
+fn pax_col_tint(col: pax_col_t, tint: pax_col_t) pax_col_t;
+
+fn pax_apply_2d(buf: *pax_buf, a: matrix_2d_t) void;
+
+fn pax_push_2d(buf: *pax_buf) void;
+
+fn pax_pop_2d(buf: *pax_buf) void;
+
+fn pax_reset_2d(buf: *pax_buf, full: bool) void;
+
+fn pax_merge_pixel(buf: *pax_buf, color: pax_col_t, x: c_int, y: c_int) void;
+
+fn pax_set_pixel(buf: *pax_buf, color: pax_col_t, x: c_int, y: c_int) void;
+
+fn pax_get_pixel(buf: *const pax_buf, x: c_int, y: c_int) pax_col_t;
+
+fn pax_set_pixel_raw(buf: *pax_buf, color: pax_col_t, x: c_int, y: c_int) void;
+
+fn pax_get_pixel_raw(buf: *const pax_buf, x: c_int, y: c_int) pax_col_t;
+
+fn pax_shade_rect(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_quadf, x: f32, y: f32, width: f32, height: f32) void;
+
+fn pax_shade_line(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_linef, x0: f32, y0: f32, x1: f32, y1: f32) void;
+
+fn pax_shade_tri(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_trif, x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32) void;
+
+fn pax_shade_arc(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_quadf, x: f32, y: f32, r: f32, a0: f32, a1: f32) void;
+
+fn pax_shade_circle(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_quadf, x: f32, y: f32, r: f32) void;
+
+fn pax_draw_image(buf: *pax_buf, image: *const pax_buf, x: f32, y: f32) void;
+
+fn pax_draw_image_sized(buf: *pax_buf, image: *const pax_buf, x: f32, y: f32, width: f32, height: f32) void;
+
+fn pax_draw_image_op(buf: *pax_buf, image: *const pax_buf, x: f32, y: f32) void;
+
+fn pax_draw_image_sized_op(buf: *pax_buf, image: *const pax_buf, x: f32, y: f32, width: f32, height: f32) void;
+
+fn pax_draw_rect(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, width: f32, height: f32) void;
+
+fn pax_draw_line(buf: *pax_buf, color: pax_col_t, x0: f32, y0: f32, x1: f32, y1: f32) void;
+
+fn pax_draw_tri(buf: *pax_buf, color: pax_col_t, x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32) void;
+
+fn pax_draw_arc(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, r: f32, a0: f32, a1: f32) void;
+
+fn pax_draw_circle(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, r: f32) void;
+
+fn pax_background(buf: *pax_buf, color: pax_col_t) void;
+
+fn pax_simple_rect(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, width: f32, height: f32) void;
+
+fn pax_simple_line(buf: *pax_buf, color: pax_col_t, x0: f32, y0: f32, x1: f32, y1: f32) void;
+
+fn pax_simple_tri(buf: *pax_buf, color: pax_col_t, x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32) void;
+
+fn pax_simple_arc(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, r: f32, a0: f32, a1: f32) void;
+
+fn pax_simple_circle(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, r: f32) void;

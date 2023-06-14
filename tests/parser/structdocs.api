@@ -1,0 +1,42 @@
+
+type name = struct {
+    /// documented
+    a: u32 
+};
+
+type name = struct {
+    /// documented
+    a: u32,
+};
+
+type name = struct { 
+    /// documented
+    a: u32,
+    /// also documented
+    b: u32 
+};
+
+type name = struct { 
+    /// documented
+    a: u32,
+    /// also documented
+    b: u32,
+};
+
+type name = struct { 
+    /// more docs!
+    a: u32,
+    /// more docs!
+    b: u32,
+    /// more docs!
+    c: u32
+};
+
+type name = struct { 
+    /// more docs!
+    a: u32,
+    /// more docs!
+    b: u32,
+    /// more docs!
+    c: u32,
+};

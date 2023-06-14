@@ -1,0 +1,22 @@
+
+type named = u32;
+type named = f32;
+
+type pointer = *u32;
+type pointer = [*]u32;
+type pointer = [*:0]u32;
+
+type pointer = ?*u32;
+type pointer = ?[*]u32;
+type pointer = ?[*:0]u32;
+
+type pointer = *const u32;
+type pointer = [*]const u32;
+type pointer = [*:0]const u32;
+
+type pointer = ?*const u32;
+type pointer = ?[*]const u32;
+type pointer = ?[*:0]const u32;
+
+type array = [0]u8;
+type array = [10]u8;
