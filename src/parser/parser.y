@@ -69,6 +69,7 @@ int yyerror(
 %type <type> type
 %type <type> primitive_type
 %type <type> named_type
+%type <type> function_type
 %type <type> function_signature
 
 %type <declaration> declaration
@@ -98,16 +99,21 @@ declaration:
 |   docs KW_FN        IDENTIFIER function_signature ';'  { $$ = (struct apigen_parser_declaration) { .kind = apigen_parser_type_declaration,  .documentation = $1,   .identifier = $3, .type = $4 }; }
 ;
 
-function_signature:
-    '(' field_list ')' type { $$ = (struct apigen_parser_type) { .type = apigen_parser_type_function, .function_data = { .parameters = $2, .return_type = apigen_parser_heapify_type(parser_state, $4) } }; }
-;
-
 type:
     primitive_type
+|   function_type
 |   KW_ENUM   '(' named_type ')' '{' enum_items '}'  { $$ = (struct apigen_parser_type) { .type = apigen_parser_type_enum, .enum_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $3), .items = $6 } }; }
 |   KW_ENUM                      '{' enum_items '}'  { $$ = (struct apigen_parser_type) { .type = apigen_parser_type_enum, .enum_data = { .underlying_type = NULL,                                         .items = $3 } }; }
 |   KW_UNION                     '{' field_list '}'  { $$ = (struct apigen_parser_type) { .type = apigen_parser_type_union,  .union_struct_fields = $3 }; }
 |   KW_STRUCT                    '{' field_list '}'  { $$ = (struct apigen_parser_type) { .type = apigen_parser_type_struct, .union_struct_fields = $3 }; }
+;
+
+function_type:
+    KW_FN function_signature { $$ = $2; }
+;
+
+function_signature:
+    '(' field_list ')' type { $$ = (struct apigen_parser_type) { .type = apigen_parser_type_function, .function_data = { .parameters = $2, .return_type = apigen_parser_heapify_type(parser_state, $4) } }; }
 ;
 
 primitive_type:
