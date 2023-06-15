@@ -1,0 +1,43 @@
+
+constexpr name: u32 = 0;
+constexpr name: str = "Hello, World!";
+constexpr name: str = "\r\n";
+constexpr name: str = " \"embed\" ";
+constexpr name: str = " \'embed\' ";
+
+constexpr name: str = 
+    \\multi line string
+;
+
+constexpr name: str = 
+    \\multi
+    \\line
+    \\string
+;
+
+/// this is a docstring for name
+constexpr name: u32 = 0;
+
+/// this is a docstring for name
+constexpr name: str = "Hello, World!";
+
+/// this is a docstring for name
+constexpr name: str = "\r\n";
+
+/// this is a docstring for name
+constexpr name: str = " \"embed\" ";
+
+/// this is a docstring for name
+constexpr name: str = " \'embed\' ";
+
+/// this is a docstring for name
+constexpr name: str = 
+    \\multi line string
+;
+
+/// this is a docstring for name
+constexpr name: str = 
+    \\multi
+    \\line
+    \\string
+;

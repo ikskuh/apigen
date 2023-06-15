@@ -1,0 +1,11 @@
+
+
+var   item:       u32;
+const const_item: u32;
+
+var   config: struct {
+    name:     ?[*:0]const u8,
+    age:      u8,
+    zip_code: u32,
+    online:   bool,
+};

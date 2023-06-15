@@ -1,0 +1,8 @@
+
+
+type array = [0]u0;
+type array = [8]u8;
+
+type nest = [1][2]u8;
+type nest = [1][2][3]u8;
+type nest = [1][2][3][4]u8;

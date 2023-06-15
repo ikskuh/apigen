@@ -1,5 +1,13 @@
 %{
 #include "apigen.h"
+
+#define YY_DECL int yylex( \
+    YYSTYPE * yylval_param, \
+    YYLTYPE * yylloc_param , \
+    yyscan_t yyscanner, \
+    struct apigen_parser_state * parser_state \
+)
+
 #include "parser/parser.h"
 #include "parser.yy.h"
 #include "apigen.h"
@@ -29,6 +37,10 @@ static inline char * strdup(char const * string)
             yylloc->last_column++; \
         } \
     }
+
+
+typedef struct apigen_parser_ltype YYLTYPE;
+typedef union  apigen_parser_stype YYSTYPE;
 %}
 
 %option reentrant stack noyywrap
@@ -41,10 +53,17 @@ static inline char * strdup(char const * string)
 ident   [A-Za-z_][A-Za-z0-9_]*
 atident @\"[^\"]+\"
 
-dec_int -?[0-9_]+
-hex_int -?0x[0-9_]+
-bin_int -?0b[0-9_]+
+dec_uint [0-9_]+
+hex_uint 0x[0-9_]+
+bin_uint 0b[0-9_]+
 
+dec_sint -[0-9_]+
+hex_sint -0x[0-9_]+
+bin_sint -0b[0-9_]+
+
+string_lit  \"([^\"\\\n]|\\.)*\"
+
+multiline_str   \\\\[^\n]*
 
 %%
 
@@ -52,35 +71,45 @@ bin_int -?0b[0-9_]+
 
 "//"[^\n]*  { }
 
-{atident}   { return IDENTIFIER; }
+{string_lit}    { yylval->value = apigen_parser_conv_regular_str(parser_state, yytext); return STRING; }
+{multiline_str} { yylval->value = apigen_parser_conv_multiline_str(parser_state, yytext); return MULTILINE_STRING; }
 
-const       { return KW_CONST; }
-var         { return KW_VAR; }
-type        { return KW_TYPE; }
-fn          { return KW_FN; }
-enum        { return KW_ENUM; }
-union       { return KW_UNION; }
-struct      { return KW_STRUCT; }
+{atident}       { yylval->identifier = apigen_parser_conv_at_ident(parser_state, yytext); return IDENTIFIER; }
 
-"*"         { return yytext[0]; }
-"["         { return yytext[0]; }
-"]"         { return yytext[0]; }
-"("         { return yytext[0]; }
-")"         { return yytext[0]; }
-"{"         { return yytext[0]; }
-"}"         { return yytext[0]; }
-"="         { return yytext[0]; }
-";"         { return yytext[0]; }
-","         { return yytext[0]; }
-":"         { return yytext[0]; }
-"?"         { return yytext[0]; }
+const           { return KW_CONST; }
+constexpr       { return KW_CONSTEXPR; }
+var             { return KW_VAR; }
+type            { return KW_TYPE; }
+fn              { return KW_FN; }
+enum            { return KW_ENUM; }
+union           { return KW_UNION; }
+struct          { return KW_STRUCT; }
 
-{ident}     { return IDENTIFIER; }
-{hex_int}   { return INTEGER; }
-{bin_int}   { return INTEGER; }
-{dec_int}   { return INTEGER; }
+"*"             { return yytext[0]; }
+"["             { return yytext[0]; }
+"]"             { return yytext[0]; }
+"("             { return yytext[0]; }
+")"             { return yytext[0]; }
+"{"             { return yytext[0]; }
+"}"             { return yytext[0]; }
+"="             { return yytext[0]; }
+";"             { return yytext[0]; }
+","             { return yytext[0]; }
+":"             { return yytext[0]; }
+"?"             { return yytext[0]; }
 
-[ \r\n]     { }
-.           { printf("unexpected char: '%s'", yytext); return -1; }
+{hex_uint}      { yylval->value = (struct apigen_value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
+{bin_uint}      { yylval->value = (struct apigen_value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
+{dec_uint}      { yylval->value = (struct apigen_value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
+{hex_sint}      { yylval->value = (struct apigen_value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
+{bin_sint}      { yylval->value = (struct apigen_value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
+{dec_sint}      { yylval->value = (struct apigen_value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
+null            { yylval->value = (struct apigen_value) { .type = apigen_value_null };                  return NULLVAL; }
+
+
+{ident}         { yylval->identifier = apigen_memory_arena_dupestr(parser_state->ast_arena, yytext); return IDENTIFIER; }
+
+[ \r\n]         { }
+.               { printf("unexpected char: '%s'", yytext); return -1; }
 
 %%

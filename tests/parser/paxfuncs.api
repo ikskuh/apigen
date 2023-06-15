@@ -1,0 +1,134 @@
+fn pax_desc_err(err_code: pax_err_t) ?[*:0]const c_char;
+
+fn pax_join() void;
+
+fn pax_enable_multicore(core: c_int) void;
+fn pax_disable_multicore() void;
+
+fn pax_buf_init(buf: *pax_buf, mem: ?*anyopaque, width: c_int, height: c_int, @"type": pax_buftype) void;
+
+fn pax_buf_reversed(buf: *pax_buf, reversed_endianness: bool) void;
+
+fn pax_buf_destroy(buf: *pax_buf) void;
+
+fn pax_buf_convert(dst: *pax_buf, src: *pax_buf, @"type": pax_buftype) void;
+
+fn pax_buf_get_width(buf: *const pax_buf) c_int;
+
+fn pax_buf_get_height(buf: *const pax_buf) c_int;
+
+fn pax_buf_get_widthf(buf: *const pax_buf) f32;
+
+fn pax_buf_get_heightf(buf: *const pax_buf) f32;
+
+fn pax_buf_get_type(buf: *const pax_buf) pax_bufype;
+
+fn pax_buf_get_pixels(buf: *const pax_buf) *const anyopaque;
+
+fn pax_buf_get_pixels_rw(buf: *pax_buf) *anyopaque;
+
+fn pax_buf_get_size(buf: *const pax_buf) usize;
+
+fn pax_buf_set_orientation(buf: *pax_buf, x: pax_orientation) void;
+
+fn pax_buf_get_orientation(buf: *const pax_buf) pax_orientation;
+
+fn pax_buf_scroll(buf: *pax_buf, placeholder: pax_col_t, x: c_int, y: c_int) void;
+
+fn pax_clip(buf: *pax_buf, x: c_int, y: c_int, width: c_int, height: c_int) void;
+
+fn pax_get_clip(buf: *const pax_buf) pax_recti;
+
+fn pax_noclip(buf: *pax_buf) void;
+
+fn pax_is_dirty(buf: *const pax_buf) bool;
+
+fn pax_get_dirty(buf: *const pax_buf) pax_recti;
+
+fn pax_mark_clean(buf: *pax_buf) void;
+
+fn pax_mark_dirty0(buf: *pax_buf) void;
+
+fn pax_mark_dirty1(buf: *pax_buf, x: c_int, y: c_int) void;
+
+fn pax_mark_dirty2(buf: *pax_buf, x: c_int, y: c_int, width: c_int, height: c_int) void;
+
+fn pax_col_hsv(h: u8, s: u8, v: u8) pax_col_t;
+
+fn pax_col_ahsv(a: u8, h: u8, s: u8, v: u8) pax_col_t;
+
+fn pax_col_hsv_alt(h: u16, s: u8, v: u8) pax_col_t;
+
+fn pax_col_ahsv_alt(a: u8, h: u16, s: u8, v: u8) pax_col_t;
+
+fn pax_undo_ahsv(in: pax_col_t, a: *u8, h: *u8, s: *u8, v: *u8) void;
+
+fn pax_undo_hsv(in: pax_col_t, h: *u8, s: *u8, v: *u8) void;
+
+fn pax_undo_ahsv_alt(in: pax_col_t, a: *u8, h: *u8, s: *u8, v: *u8) void;
+
+fn pax_undo_hsv_alt(in: pax_col_t, h: *u8, s: *u8, v: *u8) void;
+
+fn pax_col_lerp(part: u8, from: pax_col_t, to: pax_col_t) pax_col_t;
+
+fn pax_col_merge(base: pax_col_t, top: pax_col_t) pax_col_t;
+
+fn pax_col_tint(col: pax_col_t, tint: pax_col_t) pax_col_t;
+
+fn pax_apply_2d(buf: *pax_buf, a: matrix_2d_t) void;
+
+fn pax_push_2d(buf: *pax_buf) void;
+
+fn pax_pop_2d(buf: *pax_buf) void;
+
+fn pax_reset_2d(buf: *pax_buf, full: bool) void;
+
+fn pax_merge_pixel(buf: *pax_buf, color: pax_col_t, x: c_int, y: c_int) void;
+
+fn pax_set_pixel(buf: *pax_buf, color: pax_col_t, x: c_int, y: c_int) void;
+
+fn pax_get_pixel(buf: *const pax_buf, x: c_int, y: c_int) pax_col_t;
+
+fn pax_set_pixel_raw(buf: *pax_buf, color: pax_col_t, x: c_int, y: c_int) void;
+
+fn pax_get_pixel_raw(buf: *const pax_buf, x: c_int, y: c_int) pax_col_t;
+
+fn pax_shade_rect(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_quadf, x: f32, y: f32, width: f32, height: f32) void;
+
+fn pax_shade_line(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_linef, x0: f32, y0: f32, x1: f32, y1: f32) void;
+
+fn pax_shade_tri(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_trif, x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32) void;
+
+fn pax_shade_arc(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_quadf, x: f32, y: f32, r: f32, a0: f32, a1: f32) void;
+
+fn pax_shade_circle(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_quadf, x: f32, y: f32, r: f32) void;
+
+fn pax_draw_image(buf: *pax_buf, image: *const pax_buf, x: f32, y: f32) void;
+
+fn pax_draw_image_sized(buf: *pax_buf, image: *const pax_buf, x: f32, y: f32, width: f32, height: f32) void;
+
+fn pax_draw_image_op(buf: *pax_buf, image: *const pax_buf, x: f32, y: f32) void;
+
+fn pax_draw_image_sized_op(buf: *pax_buf, image: *const pax_buf, x: f32, y: f32, width: f32, height: f32) void;
+
+fn pax_draw_rect(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, width: f32, height: f32) void;
+
+fn pax_draw_line(buf: *pax_buf, color: pax_col_t, x0: f32, y0: f32, x1: f32, y1: f32) void;
+
+fn pax_draw_tri(buf: *pax_buf, color: pax_col_t, x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32) void;
+
+fn pax_draw_arc(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, r: f32, a0: f32, a1: f32) void;
+
+fn pax_draw_circle(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, r: f32) void;
+
+fn pax_background(buf: *pax_buf, color: pax_col_t) void;
+
+fn pax_simple_rect(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, width: f32, height: f32) void;
+
+fn pax_simple_line(buf: *pax_buf, color: pax_col_t, x0: f32, y0: f32, x1: f32, y1: f32) void;
+
+fn pax_simple_tri(buf: *pax_buf, color: pax_col_t, x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32) void;
+
+fn pax_simple_arc(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, r: f32, a0: f32, a1: f32) void;
+
+fn pax_simple_circle(buf: *pax_buf, color: pax_col_t, x: f32, y: f32, r: f32) void;

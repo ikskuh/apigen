@@ -39,12 +39,14 @@ int main(int argc, char **argv)
             .file = f,
             .file_name = argv[2],
             .ast_arena = &central_arena,
+            .line_feed = "\r\n",
         };
 
         int result = apigen_parse(&state);
 
         fclose(f);
 
+        apigen_memory_arena_deinit(&central_arena);
         return result;
     }
 
@@ -56,10 +58,12 @@ int main(int argc, char **argv)
         .file = stdin,
         .file_name = "stdin",
         .ast_arena = &central_arena,
+        .line_feed = "\r\n",
     };
 
     int foo = apigen_parse(&state);
     fprintf(stderr, "lex result: %d\n", foo);
 
+    apigen_memory_arena_deinit(&central_arena);
     return 0;
 }

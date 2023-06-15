@@ -12,7 +12,6 @@ static size_t maxSize(size_t a, size_t b)
 static bool isAligned(uintptr_t addr, size_t const alignment)
 {
     APIGEN_ASSERT((alignment & (alignment - 1)) == 0);
-    
     return ((addr & (alignment-1)) == 0);
 }
 
@@ -89,12 +88,16 @@ void * apigen_memory_arena_alloc(struct apigen_memory_arena * arena, size_t size
         
         size_t const new_chunk_size = maxSize(arena->chunk_size, aligned_size);
 
+        APIGEN_ASSERT(new_chunk_size >= aligned_size);
+
         chunk = apigen_alloc(chunk_aligned_size + new_chunk_size);
         *chunk = (struct apigen_memory_arena_chunk) {
             .memory = ((char*)chunk) + chunk_aligned_size,
             .size = new_chunk_size,
             .next = NULL,
         };
+
+        APIGEN_ASSERT((void*)(chunk->memory - chunk_aligned_size) == (void*)chunk);
 
         if(arena->last_chunk == NULL) {
             APIGEN_ASSERT(arena->first_chunk == NULL);
@@ -114,9 +117,11 @@ void * apigen_memory_arena_alloc(struct apigen_memory_arena * arena, size_t size
     APIGEN_ASSERT(chunk->size >= aligned_size);
 
     chunk->memory += aligned_size;
-    chunk->size -= aligned_size;
+    chunk->size   -= aligned_size;
 
     APIGEN_ASSERT(isAddrAligned(alloc_ptr, alignof(max_align_t)));
+
+    memset(alloc_ptr, 0xAA, aligned_size);
 
     return alloc_ptr;
 }
@@ -124,8 +129,8 @@ void * apigen_memory_arena_alloc(struct apigen_memory_arena * arena, size_t size
 char *apigen_memory_arena_dupestr(struct apigen_memory_arena *arena, char const * str)
 {
     size_t len = strlen(str);
-    char * res = apigen_memory_arena_alloc(arena, len+1);
-    memcpy(res, str,len);
+    char * res = apigen_memory_arena_alloc(arena, len + 1);
+    memcpy(res, str, len);
     res[len] = 0;
     return res;
 }

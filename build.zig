@@ -114,6 +114,10 @@ pub fn build(b: *std.Build) void {
 
 const parser_test_files = [_][]const u8{
     "tests/parser/primitives.api",
+    "tests/parser/constexpr.api",
+    "tests/parser/arrays.api",
+    "tests/parser/pointers.api",
+    "tests/parser/vars-and-consts.api",
 
     // compounds:
     "tests/parser/functions.api",
@@ -126,4 +130,7 @@ const parser_test_files = [_][]const u8{
     "tests/parser/enumdocs.api",
     "tests/parser/structdocs.api",
     "tests/parser/uniondocs.api",
+
+    // extra
+    "tests/parser/paxfuncs.api",
 };

@@ -14,10 +14,13 @@
     }                                                                          \
   } while (false)
 
+#define APIGEN_STR(_X) #_X
+#define APIGEN_SSTR(_X) APIGEN_STR(_X)
+
 #define APIGEN_ASSERT(_Cond)                                                   \
   do {                                                                         \
     if ((_Cond) == 0)                                                          \
-      apigen_panic("Assertion failure: " #_Cond " did not assert!");          \
+      apigen_panic(__FILE__ ":" APIGEN_SSTR(__LINE__) ":" "Assertion failure: " #_Cond " did not assert!");          \
   } while (false)
 
 typedef void *apigen_Stream;
@@ -125,11 +128,18 @@ void apigen_memory_arena_init(struct apigen_memory_arena *arena);
 void apigen_memory_arena_deinit(struct apigen_memory_arena *arena);
 
 void *apigen_memory_arena_alloc(struct apigen_memory_arena *arena, size_t size);
+char *apigen_memory_arena_dupestr(struct apigen_memory_arena *arena, char const * str);
+
+struct apigen_parser_declaration;
 
 struct apigen_parser_state {
   FILE *file;
   char const * file_name;
   struct apigen_memory_arena *ast_arena;
+  char const * line_feed; ///< used for multiline strings
+
+  // output data:
+  struct apigen_parser_declaration * top_level_declarations;
 };
 
 int apigen_parse(struct apigen_parser_state *state);
