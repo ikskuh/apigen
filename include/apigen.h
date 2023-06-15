@@ -41,6 +41,7 @@ void apigen_io_writeFile(apigen_Stream file, char const *string, size_t length);
 enum apigen_TypeId {
   apigen_typeid_void,
   apigen_typeid_anyopaque,
+  apigen_typeid_opaque,
 
   apigen_typeid_bool,
 
@@ -71,26 +72,71 @@ enum apigen_TypeId {
   apigen_typeid_c_longlong,
 
   // pointers:
-  apigen_typeid_ptr_to_one,
-  apigen_typeid_ptr_to_many,
-  apigen_typeid_ptr_to_sentinelled_many,
-  apigen_typeid_nullable_ptr_to_one,
-  apigen_typeid_nullable_ptr_to_many,
-  apigen_typeid_nullable_ptr_to_sentinelled_many,
+  apigen_typeid_ptr_to_one,                       // extra: apigen_Type
+  apigen_typeid_ptr_to_many,                      // extra: apigen_Type
+  apigen_typeid_ptr_to_sentinelled_many,          // extra: apigen_Type
+  apigen_typeid_nullable_ptr_to_many,             // extra: apigen_Type
+  apigen_typeid_nullable_ptr_to_one,              // extra: apigen_Type
+  apigen_typeid_nullable_ptr_to_sentinelled_many, // extra: apigen_Type
+
+  apigen_typeid_const_ptr_to_one,                       // extra: apigen_Type
+  apigen_typeid_const_ptr_to_many,                      // extra: apigen_Type
+  apigen_typeid_const_ptr_to_sentinelled_many,          // extra: apigen_Type
+  apigen_typeid_nullable_const_ptr_to_many,             // extra: apigen_Type
+  apigen_typeid_nullable_const_ptr_to_one,              // extra: apigen_Type
+  apigen_typeid_nullable_const_ptr_to_sentinelled_many, // extra: apigen_Type
 
   // compound types:
-  apigen_typeid_enum,
-  apigen_typeid_struct,
-  apigen_typeid_union,
-  apigen_typeid_array,
-  apigen_typeid_opaque,
+  apigen_typeid_enum,     // extra: apigen_Enum
+  apigen_typeid_struct,   // extra: apigen_UnionOrStruct
+  apigen_typeid_union,    // extra: apigen_UnionOrStruct
+  apigen_typeid_array,    // extra: apigen_Array
+  apigen_typeid_function, // extra: apigen_Function
 
   APIGEN_TYPEID_LIMIT,
 };
 
 struct apigen_Type {
   enum apigen_TypeId id;
-  void *extra;
+  void *extra;           ///< Points to extra information to interpret this type.
+  char const * name;     ///< Non-NULL if the type has was explicitly declared with a name. Otherwise, this type is anonymous
+};
+
+struct apigen_EnumItem {
+    char const * documentation;
+    char const * name;
+    union {
+        uint64_t uvalue; ///< Active for all enums based on an unsigned integer
+        int64_t  ivalue; ///< Active for all enums based on an signed integer
+    };
+};
+
+struct apigen_NamedValue {
+    char const *         documentation;
+    char const *         name;
+    struct apigen_Type * type;
+};
+
+struct apigen_Enum {
+    struct apigen_Type * underlying_type;
+};
+
+struct apigen_UnionOrStruct {
+    size_t                     field_count;
+    struct apigen_NamedValue * fields;
+};
+
+struct apigen_Array {
+    uint64_t             size;
+    struct apigen_Type * underlying_type;
+};
+
+struct apigen_Function {
+    struct apigen_Type *       return_type;
+
+    size_t                     parameter_count;
+    struct apigen_NamedValue * parameters;
+    
 };
 
 void apigen_type_free(struct apigen_Type *type);
