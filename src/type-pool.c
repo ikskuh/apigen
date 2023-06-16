@@ -97,20 +97,23 @@ struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, str
     apigen_panic("not implemented yet!");
 }
 
-bool apigen_register_type(struct apigen_TypePool * pool, struct apigen_Type const * type)
+bool apigen_register_type(struct apigen_TypePool * pool, struct apigen_Type const * type, char const * name_hint)
 {
     APIGEN_NOT_NULL(pool);
     APIGEN_NOT_NULL(type);
-    APIGEN_ASSERT(type->name != NULL);
 
-    if(apigen_lookup_type(pool, type->name) != NULL) {
+    char const * const type_name = (name_hint != NULL) ? name_hint : type->name;
+    
+    APIGEN_ASSERT(type_name != NULL);
+
+    if(apigen_lookup_type(pool, type_name) != NULL) {
         return NULL;
     }
 
     struct apigen_TypePoolNamedType * const node = apigen_memory_arena_alloc(pool->arena, sizeof(struct apigen_TypePoolNamedType));
     *node = (struct apigen_TypePoolNamedType) {
         .next = pool->named_types,
-        .name = apigen_memory_arena_dupestr(pool->arena, type->name),
+        .name = apigen_memory_arena_dupestr(pool->arena, type_name),
         .type = type,
     };
     pool->named_types = node;

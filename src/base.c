@@ -16,15 +16,5 @@ bool apigen_streq(char const * str1, char const * str2)
     APIGEN_NOT_NULL(str1);
     APIGEN_NOT_NULL(str2);
 
-    size_t const str1_len = strlen(str1);
-    size_t const str2_len = strlen(str2);
-    if(str1_len != str2_len) {
-        return false;
-    }
-    for(size_t i = 0; i < str1_len; i++) {
-        if(str1[i] != str2[i]) {
-            return false;
-        }
-    }
-    return true;
+    return (0 == strcmp(str1, str2));
 }

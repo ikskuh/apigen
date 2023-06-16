@@ -199,7 +199,7 @@ struct apigen_TypePool {
 struct apigen_Type const * apigen_lookup_type(struct apigen_TypePool const * pool, char const * name);
 
 
-bool apigen_register_type(struct apigen_TypePool * pool, struct apigen_Type const * type);
+bool apigen_register_type(struct apigen_TypePool * pool, struct apigen_Type const * type, char const * name_hint);
 
 /// Takes `type` and returns a canonical version of it for which pointer equality is 
 /// given. The returned value has same lifetime as the `pool` parameter.

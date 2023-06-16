@@ -1,5 +1,5 @@
 #include "apigen.h"
-#include "parser.h"
+#include "parser/parser.h"
 
 #include <stdio.h>
 
@@ -16,6 +16,42 @@ static bool is_unique_type(enum apigen_ParserTypeId id) {
         case apigen_parser_type_ptr_to_many_sentinelled:    return false;
         case apigen_parser_type_function:                   return false;
     }
+}
+
+static struct apigen_Type const * resolve_type(struct apigen_TypePool * pool, struct apigen_ParserType const * src_type)
+{
+    (void)pool;
+    (void)src_type;
+
+    switch(src_type->type) {
+        case apigen_parser_type_named:
+            return apigen_lookup_type(pool,src_type->named_data);
+            
+        case apigen_parser_type_array: {
+            apigen_panic("resolving array not implemented yet!");
+        }
+        case apigen_parser_type_ptr_to_one: {
+            apigen_panic("resolving ptr_to_one not implemented yet!");
+        }
+        case apigen_parser_type_ptr_to_many: {
+            apigen_panic("resolving ptr_to_many not implemented yet!");
+        }
+        case apigen_parser_type_ptr_to_many_sentinelled: {
+            apigen_panic("resolving ptr_to_many_sentinelled not implemented yet!");
+        }
+        case apigen_parser_type_function: {
+            apigen_panic("resolving function not implemented yet!");
+        }
+        case apigen_parser_type_enum: 
+        case apigen_parser_type_struct:
+        case apigen_parser_type_union: 
+        case apigen_parser_type_opaque: { 
+            apigen_panic("cannot resolve unique type in this part of the code!");
+        }
+    }
+
+    return NULL;
+
 }
 
 bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Document * const out_document)
@@ -87,7 +123,7 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                         .name = decl->identifier,
                     };
 
-                    if(!apigen_register_type(&out_document->type_pool, unique_type)) {
+                    if(!apigen_register_type(&out_document->type_pool, unique_type, NULL)) {
                         fprintf(stderr, "duplicate type: %s\n", unique_type->name);
                         ok = false;
                     }
@@ -106,27 +142,45 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
     {
         size_t resolved_count;
         size_t resolve_failed_count;
+        bool non_resolve_error;
         do {
             resolved_count = 0;
             resolve_failed_count = 0;
+            non_resolve_error = false;
 
-            struct apigen_ParserDeclaration const * decl = state->top_level_declarations;
+            struct apigen_ParserDeclaration * decl = state->top_level_declarations;
             while(decl != NULL) {
                 if(decl->kind == apigen_parser_type_declaration) {
                     if(decl->associated_type == NULL) {
                         APIGEN_ASSERT(!is_unique_type( decl->type.type));
                     
                         // TODO: Try resolve primitive type here, and retry next loop if it wasn't successful
+                        struct apigen_Type const * const resolved_type = resolve_type(&out_document->type_pool, &decl->type);
+                        if(resolved_type != NULL) {
 
 
+                            if(apigen_register_type(&out_document->type_pool, resolved_type, decl->identifier)) {
+                                decl->associated_type = (struct apigen_Type *)resolved_type;
+                                resolved_count += 1;
+                            }
+                            else {
+                                fprintf(stderr, "duplicate type: %s\n", decl->identifier);
+                                non_resolve_error = true;
+                            }
 
-                        // TODO: On success, do resolved_count += 1;
-                        // TODO: On failure, increment resolve_failed_count
+                        }
+                        else {
+                            resolve_failed_count += 1;
+                        }
                     }
                 }
                 decl = decl->next;
             }
-        } while(resolved_count > 0);
+        } while(resolved_count > 0 && !non_resolve_error);
+
+        if(non_resolve_error) {
+            return false;
+        }
 
         if(resolve_failed_count > 0) {
             fprintf(stderr, "found %zu cyclic dependencies or undeclared types.\n", resolve_failed_count);

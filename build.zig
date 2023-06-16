@@ -72,8 +72,8 @@ pub fn build(b: *std.Build) void {
             "src/memory.c",
             "src/base.c",
             "src/type-pool.c",
+            "src/analyzer.c",
             "src/parser/parser.c",
-            "src/parser/analyzer.c",
             // "src/gen/c_cpp.c",
             // "src/gen/rust.c",
             // "src/gen/zig.c",
@@ -89,6 +89,15 @@ pub fn build(b: *std.Build) void {
         for (parser_test_files) |test_file| {
             const run = b.addRunArtifact(exe);
             run.addArg("--parser-test");
+            run.addFileSourceArg(.{ .path = test_file });
+            run.addCheck(.{ .expect_term = .{ .Exited = 0 } });
+            run.stdin = "";
+            test_step.dependOn(&run.step);
+        }
+
+        for (analyzer_test_files) |test_file| {
+            const run = b.addRunArtifact(exe);
+            run.addArg("--analyzer-test");
             run.addFileSourceArg(.{ .path = test_file });
             run.addCheck(.{ .expect_term = .{ .Exited = 0 } });
             run.stdin = "";
@@ -136,4 +145,10 @@ const parser_test_files = [_][]const u8{
 
     // extra
     "tests/parser/paxfuncs.api",
+};
+
+const analyzer_test_files = [_][]const u8{
+    "tests/analyzer/builtin.api",
+    "tests/analyzer/forward-ref.api",
+    "tests/analyzer/backward-ref.api",
 };

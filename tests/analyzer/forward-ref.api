@@ -1,0 +1,6 @@
+
+
+type builtin = u32;
+type forward_ref0 = builtin;
+type forward_ref1 = forward_ref0;
+type forward_ref2 = forward_ref1;
