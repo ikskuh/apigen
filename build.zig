@@ -71,10 +71,12 @@ pub fn build(b: *std.Build) void {
             "src/io.c",
             "src/memory.c",
             "src/base.c",
+            "src/type-pool.c",
             "src/parser/parser.c",
-            "src/gen/c_cpp.c",
-            "src/gen/rust.c",
-            "src/gen/zig.c",
+            "src/parser/analyzer.c",
+            // "src/gen/c_cpp.c",
+            // "src/gen/rust.c",
+            // "src/gen/zig.c",
         },
         &strict_cflags,
     );
@@ -118,6 +120,7 @@ const parser_test_files = [_][]const u8{
     "tests/parser/arrays.api",
     "tests/parser/pointers.api",
     "tests/parser/vars-and-consts.api",
+    "tests/parser/opaques.api",
 
     // compounds:
     "tests/parser/functions.api",

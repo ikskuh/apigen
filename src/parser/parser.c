@@ -4,8 +4,7 @@
 #include "lexer.yy.h"
 #include "parser.yy.h"
 
-
-int apigen_parse (struct apigen_ParserState *state)
+bool apigen_parse (struct apigen_ParserState *state)
 {
     APIGEN_NOT_NULL(state);
     
@@ -16,21 +15,19 @@ int apigen_parse (struct apigen_ParserState *state)
         apigen_parser_lex_init ( &scanner );
         apigen_parser_set_in(state->file, scanner);
         
-        int const parse_ok = apigen_parser_parse ( scanner, state );
+        int const lex_result = apigen_parser_parse ( scanner, state );
     
         apigen_parser_lex_destroy ( scanner );
 
-        if(!parse_ok) {
-            return parse_ok;
+        if(lex_result != 0) {
+            return false;
         }
     }
 
     APIGEN_ASSERT(state->top_level_declarations != NULL);
 
-    return 0;
+    return true;
 }
-
-#include <stdio.h>
 
 
 

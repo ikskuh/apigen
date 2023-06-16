@@ -1,0 +1,4 @@
+
+
+type handle1 = opaque{};
+type handle2 = opaque{};

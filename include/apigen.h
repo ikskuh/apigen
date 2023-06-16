@@ -5,22 +5,22 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define APIGEN_STR(_X) #_X
+#define APIGEN_SSTR(_X) APIGEN_STR(_X)
+
 #define APIGEN_NORETURN __attribute__((noreturn))
 #define APIGEN_UNREACHABLE() __builtin_unreachable()
 #define APIGEN_NOT_NULL(_X)                                                    \
   do {                                                                         \
     if ((_X) == NULL) {                                                        \
-      apigen_panic("Value " #_X " was NULL");                                  \
+      apigen_panic(__FILE__ ":" APIGEN_SSTR(__LINE__) ": Value " #_X " was NULL!");                                  \
     }                                                                          \
   } while (false)
-
-#define APIGEN_STR(_X) #_X
-#define APIGEN_SSTR(_X) APIGEN_STR(_X)
 
 #define APIGEN_ASSERT(_Cond)                                                   \
   do {                                                                         \
     if ((_Cond) == 0)                                                          \
-      apigen_panic(__FILE__ ":" APIGEN_SSTR(__LINE__) ":" "Assertion failure: " #_Cond " did not assert!");          \
+      apigen_panic(__FILE__ ":" APIGEN_SSTR(__LINE__) ":Assertion failure: " #_Cond " did not assert!");          \
   } while (false)
 
 typedef void *apigen_Stream;
@@ -32,11 +32,32 @@ typedef void (*apigen_StreamWriter)(apigen_Stream stream, char const *string,
 
 void APIGEN_NORETURN apigen_panic(char const *msg);
 
+bool apigen_streq(char const * str1, char const * str2);
+
 void apigen_io_writeStdOut(apigen_Stream null_stream, char const *string,
                            size_t length);
 void apigen_io_writeStdErr(apigen_Stream null_stream, char const *string,
                            size_t length);
 void apigen_io_writeFile(apigen_Stream file, char const *string, size_t length);
+
+
+// generic values:
+
+enum apigen_ValueType {
+    apigen_value_null,
+    apigen_value_sint,
+    apigen_value_uint,
+    apigen_value_str,
+};
+
+struct apigen_Value {
+    enum apigen_ValueType type;
+    union {
+        uint64_t     value_uint; ///< active when type==apigen_value_uint
+        int64_t      value_sint; ///< active when type==apigen_value_sint
+        char const * value_str;  ///< active when type==apigen_value_str
+    };
+};
 
 enum apigen_TypeId {
   apigen_typeid_void,
@@ -117,17 +138,17 @@ struct apigen_EnumItem {
 };
 
 struct apigen_Enum {
-    struct apigen_Type *     underlying_type;
-    size_t                   item_count;
-    struct apigen_EnumItem * items;
+    struct apigen_Type const * underlying_type;
+    size_t                     item_count;
+    struct apigen_EnumItem *   items;
 };
 
 /// Type for struct fields, union fields and paramteres.
 /// They all share the same structure, so we can use the same type here.
 struct apigen_NamedValue {
-    char const *         documentation;
-    char const *         name;
-    struct apigen_Type * type;
+    char const *               documentation;
+    char const *               name;
+    struct apigen_Type const * type;
 };
 
 struct apigen_UnionOrStruct {
@@ -136,27 +157,11 @@ struct apigen_UnionOrStruct {
 };
 
 struct apigen_Function {
-    struct apigen_Type *       return_type;
+    struct apigen_Type const * return_type;
 
     size_t                     parameter_count;
     struct apigen_NamedValue * parameters;
 };
-
-struct apigen_Generator {
-  void (*render_type)(struct apigen_Generator const *,
-                      struct apigen_Type const *, apigen_Stream,
-                      apigen_StreamWriter);
-};
-
-extern struct apigen_Generator apigen_gen_c;
-extern struct apigen_Generator apigen_gen_cpp;
-extern struct apigen_Generator apigen_gen_zig;
-extern struct apigen_Generator apigen_gen_rust;
-
-void apigen_generator_renderType(struct apigen_Generator const *generator,
-                                 struct apigen_Type const *type,
-                                 apigen_Stream stream,
-                                 apigen_StreamWriter writer);
 
 // memory module:
 
@@ -177,6 +182,63 @@ void apigen_memory_arena_deinit(struct apigen_MemoryArena *arena);
 void *apigen_memory_arena_alloc(struct apigen_MemoryArena *arena, size_t size);
 char *apigen_memory_arena_dupestr(struct apigen_MemoryArena *arena, char const * str);
 
+
+// type management:
+
+struct apigen_TypePoolNamedType;
+struct apigen_TypePoolCache;
+
+struct apigen_TypePool {
+    struct apigen_MemoryArena *       arena;
+
+    struct apigen_TypePoolNamedType * named_types;
+    struct apigen_TypePoolCache *     cache;
+};
+
+/// Looks up a type by name, returns `NULL` if no type named `name` exists.
+struct apigen_Type const * apigen_lookup_type(struct apigen_TypePool const * pool, char const * name);
+
+
+bool apigen_register_type(struct apigen_TypePool * pool, struct apigen_Type const * type);
+
+/// Takes `type` and returns a canonical version of it for which pointer equality is 
+/// given. The returned value has same lifetime as the `pool` parameter.
+struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, struct apigen_Type const * type);
+
+// documents:
+
+struct apigen_Global {
+    char const *               documentation;
+    char const *               name;
+    struct apigen_Type const * type;
+    bool                       is_const;
+};
+
+struct apigen_Constant {
+    char const *               documentation;
+    char const *               name;
+    struct apigen_Type const * type;
+    struct apigen_Value        value;
+};
+
+struct apigen_Document {
+    struct apigen_TypePool       type_pool;
+
+    size_t                       type_count;
+    struct apigen_Type const * * types;
+
+    size_t                       function_count;
+    struct apigen_Type const * * functions; ///< As functions have no body, we can store them as named types as well.
+
+    size_t                       variable_count;
+    struct apigen_Global *       variables;
+
+    size_t                       constant_count;
+    struct apigen_Constant *     constants;
+};
+
+// parser and analysis:
+
 struct apigen_ParserDeclaration;
 
 struct apigen_ParserState {
@@ -189,7 +251,13 @@ struct apigen_ParserState {
   struct apigen_ParserDeclaration * top_level_declarations;
 };
 
-int apigen_parse(struct apigen_ParserState *state);
+/// Parses `state->file` into an AST stored in
+/// `state->top_level_declarations`.
+bool apigen_parse(struct apigen_ParserState *state);
+
+/// Analyzes `state->top_level_declarations` into concrete
+/// types and declarations
+bool apigen_analyze(struct apigen_ParserState *state, struct apigen_Document * out_document);
 
 
 

@@ -6,29 +6,12 @@
 
 #define INVALIDATE_VALUE(_X) memset(&_X, 0xAA, sizeof(_X))
 
-void apigen_type_free(struct apigen_Type *type)
-{
-    if (type->extra != NULL)
-    {
-        // TODO: Recursively destroy types
-        free(type->extra);
-    }
-    INVALIDATE_VALUE(*type);
-}
-
-void apigen_generator_renderType(struct apigen_Generator const *generator, struct apigen_Type const *type,
-                                 apigen_Stream stream, apigen_StreamWriter writer)
-{
-    generator->render_type(generator, type, stream, writer);
-}
-
 int main(int argc, char **argv)
 {
     struct apigen_MemoryArena central_arena;
     apigen_memory_arena_init(&central_arena);
 
-    if(argc == 3 && !strcmp(argv[1], "--parser-test")) {
-
+    if(argc == 3 && apigen_streq(argv[1], "--parser-test")) {
         FILE * f = fopen(argv[2], "rb");
         if(f == NULL) {
             fprintf(stderr, "error: %s not found!\n", argv[2]);
@@ -42,12 +25,12 @@ int main(int argc, char **argv)
             .line_feed = "\r\n",
         };
 
-        int result = apigen_parse(&state);
+        bool parse_ok = apigen_parse(&state);
 
         fclose(f);
 
         apigen_memory_arena_deinit(&central_arena);
-        return result;
+        return parse_ok ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 
     // apigen_generator_renderType(&apigen_gen_zig, &(struct apigen_Type){.id = apigen_typeid_struct}, NULL,
@@ -61,9 +44,24 @@ int main(int argc, char **argv)
         .line_feed = "\r\n",
     };
 
-    int foo = apigen_parse(&state);
-    fprintf(stderr, "lex result: %d\n", foo);
+    bool parse_ok = apigen_parse(&state);
+    if(parse_ok) {
+        fprintf(stderr, "lex ok.\n");
+
+        struct apigen_Document document;
+
+        bool analyze_ok = apigen_analyze(&state, &document);
+        if(analyze_ok) {
+            fprintf(stderr, "analyze ok.\n");
+        }
+        else {
+            fprintf(stderr, "analyze failed!\n");
+        }
+    }
+    else {
+        fprintf(stderr, "lex failed!\n");
+    }
 
     apigen_memory_arena_deinit(&central_arena);
-    return 0;
+    return parse_ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

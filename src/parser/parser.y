@@ -52,6 +52,7 @@ int yyerror(
 %token KW_UNION
 %token KW_STRUCT
 %token KW_CONSTEXPR
+%token KW_OPAQUE
 
 %type <plain_text> docs
 %type <value> value
@@ -106,6 +107,7 @@ type:
 |   KW_ENUM                      '{' enum_items '}'  { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_enum, .enum_data = { .underlying_type = NULL,                                         .items = $3 } }; }
 |   KW_UNION                     '{' field_list '}'  { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_union,  .union_struct_fields = $3 }; }
 |   KW_STRUCT                    '{' field_list '}'  { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_struct, .union_struct_fields = $3 }; }
+|   KW_OPAQUE                    '{' '}'             { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_opaque }; }
 ;
 
 function_type:

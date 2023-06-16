@@ -84,6 +84,7 @@ fn              { return KW_FN; }
 enum            { return KW_ENUM; }
 union           { return KW_UNION; }
 struct          { return KW_STRUCT; }
+opaque          { return KW_OPAQUE; }
 
 "*"             { return yytext[0]; }
 "["             { return yytext[0]; }

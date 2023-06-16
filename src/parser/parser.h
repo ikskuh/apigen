@@ -10,23 +10,6 @@ struct apigen_ParserLType
   int last_column;
 };
 
-
-enum apigen_value_type {
-    apigen_value_null,
-    apigen_value_sint,
-    apigen_value_uint,
-    apigen_value_str,
-};
-
-struct apigen_Value {
-    enum apigen_value_type type;
-    union {
-        uint64_t value_uint;
-        int64_t value_sint;
-        char const * value_str;
-    };
-};
-
 #define APIGEN_VALUE_NULL ((struct apigen_Value){ .type = apigen_value_null })
 
 struct apigen_ParserEnumItem;
@@ -42,6 +25,7 @@ enum apigen_ParserTypeId {
     apigen_parser_type_ptr_to_many,
     apigen_parser_type_ptr_to_many_sentinelled,
     apigen_parser_type_function,
+    apigen_parser_type_opaque,
 };
 
 struct apigen_ParserType {
@@ -99,6 +83,8 @@ struct apigen_ParserDeclaration {
     struct apigen_ParserType type;
     struct apigen_Value       initial_value;
     struct apigen_ParserDeclaration * next;
+
+    struct apigen_Type * associated_type;
 };
 
 union apigen_ParserAstNode {
