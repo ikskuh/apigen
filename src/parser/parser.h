@@ -1,6 +1,8 @@
 #pragma once
+
+#include "apigen.h"
  
-struct apigen_parser_ltype
+struct apigen_ParserLType
 {
   int first_line;
   int first_column;
@@ -16,7 +18,7 @@ enum apigen_value_type {
     apigen_value_str,
 };
 
-struct apigen_value {
+struct apigen_Value {
     enum apigen_value_type type;
     union {
         uint64_t value_uint;
@@ -25,12 +27,12 @@ struct apigen_value {
     };
 };
 
-#define APIGEN_VALUE_NULL ((struct apigen_value){ .type = apigen_value_null })
+#define APIGEN_VALUE_NULL ((struct apigen_Value){ .type = apigen_value_null })
 
-struct apigen_parser_enum_item;
-struct apigen_parser_field;
+struct apigen_ParserEnumItem;
+struct apigen_ParserField;
 
-enum apigen_parser_type_id {
+enum apigen_ParserTypeId {
     apigen_parser_type_named,
     apigen_parser_type_enum,
     apigen_parser_type_struct,
@@ -42,47 +44,47 @@ enum apigen_parser_type_id {
     apigen_parser_type_function,
 };
 
-struct apigen_parser_type {
-    enum apigen_parser_type_id type;
+struct apigen_ParserType {
+    enum apigen_ParserTypeId type;
     union {
         struct {
-            struct apigen_parser_type * underlying_type;
-            struct apigen_parser_enum_item * items;
+            struct apigen_ParserType * underlying_type;
+            struct apigen_ParserEnumItem * items;
         } enum_data;
-        struct apigen_parser_field * union_struct_fields;
+        struct apigen_ParserField * union_struct_fields;
         char const * named_data;
         struct {
-            struct apigen_parser_type * underlying_type;
-            struct apigen_value size;
+            struct apigen_ParserType * underlying_type;
+            struct apigen_Value size;
         } array_data;
         struct {
-            struct apigen_parser_type * underlying_type;
+            struct apigen_ParserType * underlying_type;
             bool is_const;
             bool is_optional;
-            struct apigen_value sentinel;
+            struct apigen_Value sentinel;
         } pointer_data;
         struct {
-            struct apigen_parser_type * return_type;
-            struct apigen_parser_field * parameters;
+            struct apigen_ParserType * return_type;
+            struct apigen_ParserField * parameters;
         } function_data;
     };
 };  
 
-struct apigen_parser_enum_item {
+struct apigen_ParserEnumItem {
     char const * documentation;
     char const * identifier;
-    struct apigen_value value;
-    struct apigen_parser_enum_item * next;
+    struct apigen_Value value;
+    struct apigen_ParserEnumItem * next;
 };
 
-struct apigen_parser_field {
+struct apigen_ParserField {
     char const * documentation;
     char const * identifier;
-    struct apigen_parser_type type;
-    struct apigen_parser_field * next;
+    struct apigen_ParserType type;
+    struct apigen_ParserField * next;
 };
 
-enum apigen_parser_declaration_kind {
+enum apigen_ParserDeclarationKind {
     apigen_parser_const_declaration,
     apigen_parser_var_declaration,
     apigen_parser_constexpr_declaration,
@@ -90,48 +92,48 @@ enum apigen_parser_declaration_kind {
     apigen_parser_type_declaration,
 };
 
-struct apigen_parser_declaration {
-    enum apigen_parser_declaration_kind kind;
+struct apigen_ParserDeclaration {
+    enum apigen_ParserDeclarationKind kind;
     char const * documentation;
     char const * identifier;
-    struct apigen_parser_type type;
-    struct apigen_value       initial_value;
-    struct apigen_parser_declaration * next;
+    struct apigen_ParserType type;
+    struct apigen_Value       initial_value;
+    struct apigen_ParserDeclaration * next;
 };
 
-union apigen_parser_stype {
-    struct apigen_value value;
+union apigen_ParserAstNode {
+    struct apigen_Value value;
     char const * identifier;
     char const * plain_text;
-    struct apigen_parser_enum_item enum_item;
-    struct apigen_parser_enum_item * enum_item_list;
-    struct apigen_parser_field field;
-    struct apigen_parser_field * field_list;
-    struct apigen_parser_type type;
-    struct apigen_parser_declaration declaration;
-    struct apigen_parser_declaration * file;
+    struct apigen_ParserEnumItem enum_item;
+    struct apigen_ParserEnumItem * enum_item_list;
+    struct apigen_ParserField field;
+    struct apigen_ParserField * field_list;
+    struct apigen_ParserType type;
+    struct apigen_ParserDeclaration declaration;
+    struct apigen_ParserDeclaration * file;
 };
 
-typedef struct apigen_parser_ltype YYLTYPE;
-typedef union apigen_parser_stype YYSTYPE;
+typedef struct apigen_ParserLType YYLTYPE;
+typedef union apigen_ParserAstNode YYSTYPE;
 
 
-struct apigen_value apigen_parser_conv_regular_str(struct apigen_parser_state *state, char const * literal);
-struct apigen_value apigen_parser_conv_multiline_str(struct apigen_parser_state *state, char const * literal);
-struct apigen_value apigen_parser_concat_multiline_strs(struct apigen_parser_state *state, struct apigen_value str1, struct apigen_value str2);
+struct apigen_Value apigen_parser_conv_regular_str(struct apigen_ParserState *state, char const * literal);
+struct apigen_Value apigen_parser_conv_multiline_str(struct apigen_ParserState *state, char const * literal);
+struct apigen_Value apigen_parser_concat_multiline_strs(struct apigen_ParserState *state, struct apigen_Value str1, struct apigen_Value str2);
 
-char const * apigen_parser_concat_doc_strings(struct apigen_parser_state *state, char const * str1, char const * str2);
+char const * apigen_parser_concat_doc_strings(struct apigen_ParserState *state, char const * str1, char const * str2);
 
-struct apigen_parser_enum_item * apigen_parser_enum_item_list_init(struct apigen_parser_state *state, struct apigen_parser_enum_item item);
-struct apigen_parser_enum_item * apigen_parser_enum_item_list_append(struct apigen_parser_state *state, struct apigen_parser_enum_item * list, struct apigen_parser_enum_item item);
+struct apigen_ParserEnumItem * apigen_parser_enum_item_list_init(struct apigen_ParserState *state, struct apigen_ParserEnumItem item);
+struct apigen_ParserEnumItem * apigen_parser_enum_item_list_append(struct apigen_ParserState *state, struct apigen_ParserEnumItem * list, struct apigen_ParserEnumItem item);
 
-struct apigen_parser_field * apigen_parser_field_list_init(struct apigen_parser_state *state, struct apigen_parser_field item);
-struct apigen_parser_field * apigen_parser_field_list_append(struct apigen_parser_state *state, struct apigen_parser_field * list, struct apigen_parser_field item);
+struct apigen_ParserField * apigen_parser_field_list_init(struct apigen_ParserState *state, struct apigen_ParserField item);
+struct apigen_ParserField * apigen_parser_field_list_append(struct apigen_ParserState *state, struct apigen_ParserField * list, struct apigen_ParserField item);
 
-struct apigen_parser_declaration * apigen_parser_file_init(struct apigen_parser_state *state, struct apigen_parser_declaration item);
-struct apigen_parser_declaration * apigen_parser_file_append(struct apigen_parser_state *state, struct apigen_parser_declaration * list, struct apigen_parser_declaration item);
+struct apigen_ParserDeclaration * apigen_parser_file_init(struct apigen_ParserState *state, struct apigen_ParserDeclaration item);
+struct apigen_ParserDeclaration * apigen_parser_file_append(struct apigen_ParserState *state, struct apigen_ParserDeclaration * list, struct apigen_ParserDeclaration item);
 
 
-char const * apigen_parser_conv_at_ident(struct apigen_parser_state *state, char const * at_identifier);
+char const * apigen_parser_conv_at_ident(struct apigen_ParserState *state, char const * at_identifier);
 
-struct apigen_parser_type * apigen_parser_heapify_type(struct apigen_parser_state *state, struct apigen_parser_type type);
+struct apigen_ParserType * apigen_parser_heapify_type(struct apigen_ParserState *state, struct apigen_ParserType type);

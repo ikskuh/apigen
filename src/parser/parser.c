@@ -5,7 +5,7 @@
 #include "parser.yy.h"
 
 
-int apigen_parse (struct apigen_parser_state *state)
+int apigen_parse (struct apigen_ParserState *state)
 {
     APIGEN_NOT_NULL(state);
     
@@ -34,7 +34,7 @@ int apigen_parse (struct apigen_parser_state *state)
 
 
 
-struct apigen_value apigen_parser_conv_regular_str(struct apigen_parser_state *state, char const * literal)
+struct apigen_Value apigen_parser_conv_regular_str(struct apigen_ParserState *state, char const * literal)
 {
     APIGEN_NOT_NULL(state);
 
@@ -93,10 +93,10 @@ struct apigen_value apigen_parser_conv_regular_str(struct apigen_parser_state *s
 
     converted[converted_length] = 0;
     
-    return (struct apigen_value) { .type = apigen_value_str, .value_str = converted };
+    return (struct apigen_Value) { .type = apigen_value_str, .value_str = converted };
 }
 
-struct apigen_value apigen_parser_conv_multiline_str(struct apigen_parser_state *state, char const * literal)
+struct apigen_Value apigen_parser_conv_multiline_str(struct apigen_ParserState *state, char const * literal)
 {
     APIGEN_NOT_NULL(state);
 
@@ -105,10 +105,10 @@ struct apigen_value apigen_parser_conv_multiline_str(struct apigen_parser_state 
 
     char * const converted = apigen_memory_arena_dupestr(state->ast_arena, literal + 2);
     
-    return (struct apigen_value) { .type = apigen_value_str, .value_str = converted };
+    return (struct apigen_Value) { .type = apigen_value_str, .value_str = converted };
 }
 
-struct apigen_value apigen_parser_concat_multiline_strs(struct apigen_parser_state *state, struct apigen_value str1, struct apigen_value str2)
+struct apigen_Value apigen_parser_concat_multiline_strs(struct apigen_ParserState *state, struct apigen_Value str1, struct apigen_Value str2)
 {
     APIGEN_NOT_NULL(state);
     APIGEN_ASSERT(str1.type == apigen_value_str);
@@ -129,10 +129,10 @@ struct apigen_value apigen_parser_concat_multiline_strs(struct apigen_parser_sta
     memcpy(output_string + str1_len + lf_len, str2.value_str, str2_len);
     output_string[total_len] = 0;
 
-    return (struct apigen_value) { .type = apigen_value_str, .value_str = output_string };
+    return (struct apigen_Value) { .type = apigen_value_str, .value_str = output_string };
 }
 
-char const * apigen_parser_concat_doc_strings(struct apigen_parser_state *state, char const * str1, char const * str2)
+char const * apigen_parser_concat_doc_strings(struct apigen_ParserState *state, char const * str1, char const * str2)
 {
     APIGEN_NOT_NULL(state);
     APIGEN_NOT_NULL(str1);
@@ -157,7 +157,7 @@ char const * apigen_parser_concat_doc_strings(struct apigen_parser_state *state,
 }
 
 #define DEFINE_LIST_OPERATORS(_ListItem, _Prefix)                                                   \
-  _ListItem *_Prefix##_init(struct apigen_parser_state *state, _ListItem item) {                    \
+  _ListItem *_Prefix##_init(struct apigen_ParserState *state, _ListItem item) {                    \
     APIGEN_NOT_NULL(state);                                                                         \
                                                                                                     \
     _ListItem *first = apigen_memory_arena_alloc(state->ast_arena, sizeof(_ListItem));              \
@@ -167,7 +167,7 @@ char const * apigen_parser_concat_doc_strings(struct apigen_parser_state *state,
     return first;                                                                                   \
   }                                                                                                 \
                                                                                                     \
-  _ListItem *_Prefix##_append(struct apigen_parser_state *state, _ListItem *list, _ListItem item) { \
+  _ListItem *_Prefix##_append(struct apigen_ParserState *state, _ListItem *list, _ListItem item) { \
         APIGEN_NOT_NULL(state);                                                                     \
         APIGEN_NOT_NULL(list);                                                                      \
                                                                                                     \
@@ -187,20 +187,20 @@ char const * apigen_parser_concat_doc_strings(struct apigen_parser_state *state,
                                                                                                     \
   }
 
-DEFINE_LIST_OPERATORS(struct apigen_parser_enum_item,   apigen_parser_enum_item_list)
-DEFINE_LIST_OPERATORS(struct apigen_parser_field,       apigen_parser_field_list)
-DEFINE_LIST_OPERATORS(struct apigen_parser_declaration, apigen_parser_file)
+DEFINE_LIST_OPERATORS(struct apigen_ParserEnumItem,   apigen_parser_enum_item_list)
+DEFINE_LIST_OPERATORS(struct apigen_ParserField,       apigen_parser_field_list)
+DEFINE_LIST_OPERATORS(struct apigen_ParserDeclaration, apigen_parser_file)
 
-struct apigen_parser_type * apigen_parser_heapify_type(struct apigen_parser_state *state, struct apigen_parser_type type)
+struct apigen_ParserType * apigen_parser_heapify_type(struct apigen_ParserState *state, struct apigen_ParserType type)
 {
     APIGEN_NOT_NULL(state);
 
-    struct apigen_parser_type * heapified = apigen_memory_arena_alloc(state->ast_arena, sizeof(struct apigen_parser_type));
+    struct apigen_ParserType * heapified = apigen_memory_arena_alloc(state->ast_arena, sizeof(struct apigen_ParserType));
     *heapified = type;
     return heapified;
 }
 
-char const * apigen_parser_conv_at_ident(struct apigen_parser_state *state, char const * at_identifier)
+char const * apigen_parser_conv_at_ident(struct apigen_ParserState *state, char const * at_identifier)
 {
     APIGEN_NOT_NULL(state);
     APIGEN_NOT_NULL(at_identifier);
@@ -214,7 +214,7 @@ char const * apigen_parser_conv_at_ident(struct apigen_parser_state *state, char
     // Kind of a hack, but also very convenient:
     // @-Identifiers are basically just a regular string literal prefixed with an @, so we
     // can just apply the same conversion rules:
-    struct apigen_value converted_name = apigen_parser_conv_regular_str(state, at_identifier + 1); 
+    struct apigen_Value converted_name = apigen_parser_conv_regular_str(state, at_identifier + 1); 
     APIGEN_ASSERT(converted_name.type == apigen_value_str);
     return converted_name.value_str;
 }

@@ -30,11 +30,11 @@ static size_t alignSizeForward(size_t const original_size)
     return aligned_size;
 }
 
-struct apigen_memory_arena_chunk
+struct apigen_MemoryArenaChunk
 {
     char * memory;
     size_t size;
-    struct apigen_memory_arena_chunk * next;
+    struct apigen_MemoryArenaChunk * next;
 };
 
 void * (* apigen_memory_alloc_backend)(size_t) = malloc;
@@ -57,41 +57,41 @@ void apigen_free(void * ptr)
 
 // arena APIs:
 
-void apigen_memory_arena_init(struct apigen_memory_arena * arena)
+void apigen_memory_arena_init(struct apigen_MemoryArena * arena)
 {
-    *arena = (struct apigen_memory_arena) {
+    *arena = (struct apigen_MemoryArena) {
         .first_chunk = NULL,
         .last_chunk = NULL,
         .chunk_size = 1024,
     };
 }
 
-void apigen_memory_arena_deinit(struct apigen_memory_arena * arena)
+void apigen_memory_arena_deinit(struct apigen_MemoryArena * arena)
 {
-    struct apigen_memory_arena_chunk * chunk = arena->first_chunk;
+    struct apigen_MemoryArenaChunk * chunk = arena->first_chunk;
     while(chunk) {
-        struct apigen_memory_arena_chunk * const to_be_deleted = chunk;
+        struct apigen_MemoryArenaChunk * const to_be_deleted = chunk;
         chunk = chunk->next;
         apigen_free (to_be_deleted);
     }
     memset(arena, 0xAA, sizeof *arena);
 }
 
-void * apigen_memory_arena_alloc(struct apigen_memory_arena * arena, size_t size)
+void * apigen_memory_arena_alloc(struct apigen_MemoryArena * arena, size_t size)
 {
     size_t const aligned_size = alignSizeForward(size);
 
-    struct apigen_memory_arena_chunk * chunk = arena->last_chunk;
+    struct apigen_MemoryArenaChunk * chunk = arena->last_chunk;
 
     if(chunk == NULL || chunk->size < aligned_size) {
-        size_t const chunk_aligned_size = alignSizeForward(sizeof(struct apigen_memory_arena_chunk));
+        size_t const chunk_aligned_size = alignSizeForward(sizeof(struct apigen_MemoryArenaChunk));
         
         size_t const new_chunk_size = maxSize(arena->chunk_size, aligned_size);
 
         APIGEN_ASSERT(new_chunk_size >= aligned_size);
 
         chunk = apigen_alloc(chunk_aligned_size + new_chunk_size);
-        *chunk = (struct apigen_memory_arena_chunk) {
+        *chunk = (struct apigen_MemoryArenaChunk) {
             .memory = ((char*)chunk) + chunk_aligned_size,
             .size = new_chunk_size,
             .next = NULL,
@@ -126,7 +126,7 @@ void * apigen_memory_arena_alloc(struct apigen_memory_arena * arena, size_t size
     return alloc_ptr;
 }
 
-char *apigen_memory_arena_dupestr(struct apigen_memory_arena *arena, char const * str)
+char *apigen_memory_arena_dupestr(struct apigen_MemoryArena *arena, char const * str)
 {
     size_t len = strlen(str);
     char * res = apigen_memory_arena_alloc(arena, len + 1);

@@ -24,7 +24,7 @@ void apigen_generator_renderType(struct apigen_Generator const *generator, struc
 
 int main(int argc, char **argv)
 {
-    struct apigen_memory_arena central_arena;
+    struct apigen_MemoryArena central_arena;
     apigen_memory_arena_init(&central_arena);
 
     if(argc == 3 && !strcmp(argv[1], "--parser-test")) {
@@ -35,7 +35,7 @@ int main(int argc, char **argv)
             return 1;
         }
 
-        struct apigen_parser_state state = {
+        struct apigen_ParserState state = {
             .file = f,
             .file_name = argv[2],
             .ast_arena = &central_arena,
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     //                             apigen_io_writeStdOut);
     // apigen_io_writeStdOut(NULL, "\r\n", 2);
 
-    struct apigen_parser_state state = {
+    struct apigen_ParserState state = {
         .file = stdin,
         .file_name = "stdin",
         .ast_arena = &central_arena,

@@ -102,6 +102,11 @@ struct apigen_Type {
   char const * name;     ///< Non-NULL if the type has was explicitly declared with a name. Otherwise, this type is anonymous
 };
 
+struct apigen_Array {
+    uint64_t             size;
+    struct apigen_Type * underlying_type;
+};
+
 struct apigen_EnumItem {
     char const * documentation;
     char const * name;
@@ -111,14 +116,18 @@ struct apigen_EnumItem {
     };
 };
 
+struct apigen_Enum {
+    struct apigen_Type *     underlying_type;
+    size_t                   item_count;
+    struct apigen_EnumItem * items;
+};
+
+/// Type for struct fields, union fields and paramteres.
+/// They all share the same structure, so we can use the same type here.
 struct apigen_NamedValue {
     char const *         documentation;
     char const *         name;
     struct apigen_Type * type;
-};
-
-struct apigen_Enum {
-    struct apigen_Type * underlying_type;
 };
 
 struct apigen_UnionOrStruct {
@@ -126,20 +135,12 @@ struct apigen_UnionOrStruct {
     struct apigen_NamedValue * fields;
 };
 
-struct apigen_Array {
-    uint64_t             size;
-    struct apigen_Type * underlying_type;
-};
-
 struct apigen_Function {
     struct apigen_Type *       return_type;
 
     size_t                     parameter_count;
     struct apigen_NamedValue * parameters;
-    
 };
-
-void apigen_type_free(struct apigen_Type *type);
 
 struct apigen_Generator {
   void (*render_type)(struct apigen_Generator const *,
@@ -162,30 +163,59 @@ void apigen_generator_renderType(struct apigen_Generator const *generator,
 void * apigen_alloc(size_t size);
 void apigen_free(void * ptr);
 
-struct apigen_memory_arena_chunk;
+struct apigen_MemoryArenaChunk;
 
-struct apigen_memory_arena {
-  struct apigen_memory_arena_chunk *first_chunk;
-  struct apigen_memory_arena_chunk *last_chunk;
+struct apigen_MemoryArena {
+  struct apigen_MemoryArenaChunk *first_chunk;
+  struct apigen_MemoryArenaChunk *last_chunk;
   size_t chunk_size;
 };
 
-void apigen_memory_arena_init(struct apigen_memory_arena *arena);
-void apigen_memory_arena_deinit(struct apigen_memory_arena *arena);
+void apigen_memory_arena_init(struct apigen_MemoryArena *arena);
+void apigen_memory_arena_deinit(struct apigen_MemoryArena *arena);
 
-void *apigen_memory_arena_alloc(struct apigen_memory_arena *arena, size_t size);
-char *apigen_memory_arena_dupestr(struct apigen_memory_arena *arena, char const * str);
+void *apigen_memory_arena_alloc(struct apigen_MemoryArena *arena, size_t size);
+char *apigen_memory_arena_dupestr(struct apigen_MemoryArena *arena, char const * str);
 
-struct apigen_parser_declaration;
+struct apigen_ParserDeclaration;
 
-struct apigen_parser_state {
+struct apigen_ParserState {
   FILE *file;
   char const * file_name;
-  struct apigen_memory_arena *ast_arena;
+  struct apigen_MemoryArena *ast_arena;
   char const * line_feed; ///< used for multiline strings
 
   // output data:
-  struct apigen_parser_declaration * top_level_declarations;
+  struct apigen_ParserDeclaration * top_level_declarations;
 };
 
-int apigen_parse(struct apigen_parser_state *state);
+int apigen_parse(struct apigen_ParserState *state);
+
+
+
+// predefined types:
+extern struct apigen_Type const apigen_type_void;
+extern struct apigen_Type const apigen_type_anyopaque;
+extern struct apigen_Type const apigen_type_bool;
+extern struct apigen_Type const apigen_type_uchar;
+extern struct apigen_Type const apigen_type_ichar;
+extern struct apigen_Type const apigen_type_char;
+extern struct apigen_Type const apigen_type_u8;
+extern struct apigen_Type const apigen_type_u16;
+extern struct apigen_Type const apigen_type_u32;
+extern struct apigen_Type const apigen_type_u64;
+extern struct apigen_Type const apigen_type_usize;
+extern struct apigen_Type const apigen_type_c_ushort;
+extern struct apigen_Type const apigen_type_c_uint;
+extern struct apigen_Type const apigen_type_c_ulong;
+extern struct apigen_Type const apigen_type_c_ulonglong;
+extern struct apigen_Type const apigen_type_i8;
+extern struct apigen_Type const apigen_type_i16;
+extern struct apigen_Type const apigen_type_i32;
+extern struct apigen_Type const apigen_type_i64;
+extern struct apigen_Type const apigen_type_isize;
+extern struct apigen_Type const apigen_type_c_short;
+extern struct apigen_Type const apigen_type_c_int;
+extern struct apigen_Type const apigen_type_c_long;
+extern struct apigen_Type const apigen_type_c_longlong;
+

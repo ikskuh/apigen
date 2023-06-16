@@ -5,7 +5,7 @@
     YYSTYPE * yylval_param, \
     YYLTYPE * yylloc_param , \
     yyscan_t yyscanner, \
-    struct apigen_parser_state * parser_state \
+    struct apigen_ParserState * parser_state \
 )
 
 #include "parser/parser.h"
@@ -39,8 +39,8 @@ static inline char * strdup(char const * string)
     }
 
 
-typedef struct apigen_parser_ltype YYLTYPE;
-typedef union  apigen_parser_stype YYSTYPE;
+typedef struct apigen_ParserLType YYLTYPE;
+typedef union  apigen_ParserAstNode YYSTYPE;
 %}
 
 %option reentrant stack noyywrap
@@ -98,13 +98,13 @@ struct          { return KW_STRUCT; }
 ":"             { return yytext[0]; }
 "?"             { return yytext[0]; }
 
-{hex_uint}      { yylval->value = (struct apigen_value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
-{bin_uint}      { yylval->value = (struct apigen_value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
-{dec_uint}      { yylval->value = (struct apigen_value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
-{hex_sint}      { yylval->value = (struct apigen_value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
-{bin_sint}      { yylval->value = (struct apigen_value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
-{dec_sint}      { yylval->value = (struct apigen_value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
-null            { yylval->value = (struct apigen_value) { .type = apigen_value_null };                  return NULLVAL; }
+{hex_uint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
+{bin_uint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
+{dec_uint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
+{hex_sint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
+{bin_sint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
+{dec_sint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
+null            { yylval->value = (struct apigen_Value) { .type = apigen_value_null };                  return NULLVAL; }
 
 
 {ident}         { yylval->identifier = apigen_memory_arena_dupestr(parser_state->ast_arena, yytext); return IDENTIFIER; }
