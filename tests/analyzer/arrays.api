@@ -10,6 +10,11 @@ type arr2 = [1]*u32;
 type arr3 = [1]foo;
 type arr4 = [1]foo;
 
-type Color = u8;
+type Color = struct {
+  r: u8,
+  g: u8,
+  b: u8,
+  a: u8, 
+};
 
 type arr2d = [64][32]Color;

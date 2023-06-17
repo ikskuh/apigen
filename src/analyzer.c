@@ -104,7 +104,6 @@ static struct apigen_Type const * resolve_type(struct apigen_TypePool * pool, st
             apigen_panic("resolving function not implemented yet!");
         }
 
-
         case apigen_parser_type_enum: 
         case apigen_parser_type_struct:
         case apigen_parser_type_union: 
@@ -114,7 +113,23 @@ static struct apigen_Type const * resolve_type(struct apigen_TypePool * pool, st
     }
 
     return NULL;
+}
 
+
+static enum apigen_TypeId map_unique_parser_type_id(enum apigen_ParserTypeId id) {
+    APIGEN_ASSERT(is_unique_type(id));
+    switch(id) {
+        case apigen_parser_type_enum:                       return apigen_typeid_enum;
+        case apigen_parser_type_struct:                     return apigen_typeid_struct;
+        case apigen_parser_type_union:                      return apigen_typeid_union;
+        case apigen_parser_type_opaque:                     return apigen_typeid_opaque;
+        case apigen_parser_type_named:                      __builtin_unreachable();
+        case apigen_parser_type_array:                      __builtin_unreachable();
+        case apigen_parser_type_ptr_to_one:                 __builtin_unreachable();
+        case apigen_parser_type_ptr_to_many:                __builtin_unreachable();
+        case apigen_parser_type_ptr_to_many_sentinelled:    __builtin_unreachable();
+        case apigen_parser_type_function:                   __builtin_unreachable();
+    }
 }
 
 bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Document * const out_document)
@@ -184,6 +199,8 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                     struct apigen_Type * const unique_type = apigen_memory_arena_alloc(state->ast_arena, sizeof(struct apigen_Type));
                     *unique_type = (struct apigen_Type) {
                         .name = decl->identifier,
+                        .id = map_unique_parser_type_id(decl->type.type),
+                        .extra = NULL, // no internal resolution yet
                     };
 
                     if(!apigen_register_type(&out_document->type_pool, unique_type, NULL)) {

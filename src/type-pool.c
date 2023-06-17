@@ -212,7 +212,6 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
         return false;
     }
 
-    
     APIGEN_ASSERT(!apigen_is_type_builtin(type1->id)); // Builtins must be pointer-equal
     
     if(apigen_is_type_unique(type1->id)) {
@@ -320,7 +319,7 @@ struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, str
     struct apigen_TypePoolCache * cache_entry = pool->cache;
     while(cache_entry) {
         if(apigen_type_eql(&cache_entry->interned_type, unchecked_type)) {
-            fprintf(stderr, "cache hit for %s\n", apigen_type_str(unchecked_type->id));
+            // fprintf(stderr, "cache hit for %s\n", apigen_type_str(unchecked_type->id));
             return &cache_entry->interned_type;
         }
         cache_entry = cache_entry->next;
@@ -381,7 +380,7 @@ struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, str
         cache_entry->interned_type.extra = extra_storage;
     }
 
-    fprintf(stderr, "cache insert for %s\n", apigen_type_str(unchecked_type->id));
+    // fprintf(stderr, "cache insert for %s\n", apigen_type_str(unchecked_type->id));
 
     pool->cache = cache_entry;
 
