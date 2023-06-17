@@ -1,0 +1,15 @@
+
+type foo = struct {
+  x: u32,
+  y: u32,
+  z: u32,
+};
+
+type arr1 = [1]u32;
+type arr2 = [1]*u32;
+type arr3 = [1]foo;
+type arr4 = [1]foo;
+
+type Color = u8;
+
+type arr2d = [64][32]Color;

@@ -8,7 +8,11 @@ void APIGEN_NORETURN apigen_panic(char const *msg)
 {
     (void)fprintf(stderr, "\r\nAPIGEN PANIC: %s\r\n\r\n", msg);
     (void)fflush(stderr);
+#ifdef NDEBUG
     exit(1);
+#else
+    abort();
+#endif
 }
 
 bool apigen_streq(char const * str1, char const * str2)

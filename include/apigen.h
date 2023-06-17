@@ -59,6 +59,8 @@ struct apigen_Value {
     };
 };
 
+bool apigen_value_eql(struct apigen_Value const * val1, struct apigen_Value const * val2);
+
 enum apigen_TypeId {
   apigen_typeid_void,
   apigen_typeid_anyopaque,
@@ -96,16 +98,16 @@ enum apigen_TypeId {
   apigen_typeid_ptr_to_one,                       // extra: apigen_Type
   apigen_typeid_ptr_to_many,                      // extra: apigen_Type
   apigen_typeid_ptr_to_sentinelled_many,          // extra: apigen_Type
-  apigen_typeid_nullable_ptr_to_many,             // extra: apigen_Type
   apigen_typeid_nullable_ptr_to_one,              // extra: apigen_Type
-  apigen_typeid_nullable_ptr_to_sentinelled_many, // extra: apigen_Type
+  apigen_typeid_nullable_ptr_to_many,             // extra: apigen_Type
+  apigen_typeid_nullable_ptr_to_sentinelled_many, // extra: apigen_Pointer
 
-  apigen_typeid_const_ptr_to_one,                       // extra: apigen_Type
-  apigen_typeid_const_ptr_to_many,                      // extra: apigen_Type
-  apigen_typeid_const_ptr_to_sentinelled_many,          // extra: apigen_Type
-  apigen_typeid_nullable_const_ptr_to_many,             // extra: apigen_Type
-  apigen_typeid_nullable_const_ptr_to_one,              // extra: apigen_Type
-  apigen_typeid_nullable_const_ptr_to_sentinelled_many, // extra: apigen_Type
+  apigen_typeid_const_ptr_to_one,                       // extra: apigen_Pointer
+  apigen_typeid_const_ptr_to_many,                      // extra: apigen_Pointer
+  apigen_typeid_const_ptr_to_sentinelled_many,          // extra: apigen_Pointer
+  apigen_typeid_nullable_const_ptr_to_one,              // extra: apigen_Pointer
+  apigen_typeid_nullable_const_ptr_to_many,             // extra: apigen_Pointer
+  apigen_typeid_nullable_const_ptr_to_sentinelled_many, // extra: apigen_Pointer
 
   // compound types:
   apigen_typeid_enum,     // extra: apigen_Enum
@@ -119,13 +121,18 @@ enum apigen_TypeId {
 
 struct apigen_Type {
   enum apigen_TypeId id;
-  void *extra;           ///< Points to extra information to interpret this type.
-  char const * name;     ///< Non-NULL if the type has was explicitly declared with a name. Otherwise, this type is anonymous
+  void const *       extra; ///< Points to extra information to interpret this type.
+  char const *       name;  ///< Non-NULL if the type has was explicitly declared with a name. Otherwise, this type is anonymous
+};
+
+struct apigen_Pointer {
+    struct apigen_Type const * underlying_type;
+    struct apigen_Value        sentinel;
 };
 
 struct apigen_Array {
-    uint64_t             size;
-    struct apigen_Type * underlying_type;
+    uint64_t                   size;
+    struct apigen_Type const * underlying_type;
 };
 
 struct apigen_EnumItem {
@@ -204,6 +211,10 @@ bool apigen_register_type(struct apigen_TypePool * pool, struct apigen_Type cons
 /// Takes `type` and returns a canonical version of it for which pointer equality is 
 /// given. The returned value has same lifetime as the `pool` parameter.
 struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, struct apigen_Type const * type);
+
+char const * apigen_type_str(enum apigen_TypeId id);
+
+bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const * type2);
 
 // documents:
 

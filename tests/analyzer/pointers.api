@@ -1,0 +1,18 @@
+
+type ptr1 = *u32;
+type ptr2 = [*]u32;
+type ptr3 = [*:0]u32;
+
+type ptr4 = ?*u32;
+type ptr5 = ?[*]u32;
+type ptr6 = ?[*:0]u32;
+
+
+
+type ptr7 = *const u32;
+type ptr8 = [*]const u32;
+type ptr9 = [*:0]const u32;
+
+type ptr10 = ?*const u32;
+type ptr11 = ?[*]const u32;
+type ptr12 = ?[*:0]const u32;

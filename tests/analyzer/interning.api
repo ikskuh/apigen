@@ -1,0 +1,6 @@
+
+type ptr1 = *u32;
+type ptr2 = *u32;
+type ptr3 = *u32;
+type ptr4 = *u32;
+type ptr5 = *u32;

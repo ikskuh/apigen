@@ -1,6 +1,6 @@
 #include "apigen.h"
 
-
+#include <string.h>
 
 struct apigen_Type const apigen_type_void        = { .id = apigen_typeid_void };
 struct apigen_Type const apigen_type_anyopaque   = { .id = apigen_typeid_anyopaque };
@@ -33,6 +33,7 @@ struct apigen_Type const apigen_type_c_longlong  = { .id = apigen_typeid_c_longl
 struct apigen_TypePoolNamedType
 {
     struct apigen_TypePoolNamedType * next;
+
     char const * name;
     struct apigen_Type const * type;
 };
@@ -41,7 +42,9 @@ struct apigen_TypePoolNamedType
 /// "type values". This is used for deduplicating types.
 struct apigen_TypePoolCache
 {
-    int dummy;
+    struct apigen_TypePoolCache * next;
+
+    struct apigen_Type interned_type;
 };
 
 struct apigen_Type const * apigen_lookup_type(struct apigen_TypePool const * pool, char const * type_name)
@@ -89,14 +92,6 @@ struct apigen_Type const * apigen_lookup_type(struct apigen_TypePool const * poo
     return NULL;
 }
 
-struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, struct apigen_Type const * type)
-{
-    APIGEN_NOT_NULL(pool);
-    APIGEN_NOT_NULL(type);
-    
-    apigen_panic("not implemented yet!");
-}
-
 bool apigen_register_type(struct apigen_TypePool * pool, struct apigen_Type const * type, char const * name_hint)
 {
     APIGEN_NOT_NULL(pool);
@@ -118,5 +113,278 @@ bool apigen_register_type(struct apigen_TypePool * pool, struct apigen_Type cons
     };
     pool->named_types = node;
     return node->type;
+}
+
+
+
+static bool apigen_is_type_unique(enum apigen_TypeId id) {
+    switch(id) {
+        case apigen_typeid_opaque: return true;
+        case apigen_typeid_enum:   return true;
+        case apigen_typeid_struct: return true;
+        case apigen_typeid_union:  return true;
+        default:                   return false;
+    }
+}
+
+static bool apigen_is_type_builtin(enum apigen_TypeId id)
+{
+    switch(id) {
+        case apigen_typeid_void:        return true;
+        case apigen_typeid_anyopaque:   return true;
+        case apigen_typeid_bool:        return true;
+        case apigen_typeid_uchar:       return true;
+        case apigen_typeid_ichar:       return true;
+        case apigen_typeid_char:        return true;
+        case apigen_typeid_u8:          return true;
+        case apigen_typeid_u16:         return true;
+        case apigen_typeid_u32:         return true;
+        case apigen_typeid_u64:         return true;
+        case apigen_typeid_usize:       return true;
+        case apigen_typeid_c_ushort:    return true;
+        case apigen_typeid_c_uint:      return true;
+        case apigen_typeid_c_ulong:     return true;
+        case apigen_typeid_c_ulonglong: return true;
+        case apigen_typeid_i8:          return true;
+        case apigen_typeid_i16:         return true;
+        case apigen_typeid_i32:         return true;
+        case apigen_typeid_i64:         return true;
+        case apigen_typeid_isize:       return true;
+        case apigen_typeid_c_short:     return true;
+        case apigen_typeid_c_int:       return true;
+        case apigen_typeid_c_long:      return true;
+        case apigen_typeid_c_longlong:  return true;
+        default:                        return false;
+    }
+}
+
+static struct apigen_Type const * apigen_get_builtin_type(enum apigen_TypeId id)
+{
+    switch(id) {
+        case apigen_typeid_void:        return &apigen_type_void;
+        case apigen_typeid_anyopaque:   return &apigen_type_anyopaque;
+        case apigen_typeid_bool:        return &apigen_type_bool;
+        case apigen_typeid_uchar:       return &apigen_type_uchar;
+        case apigen_typeid_ichar:       return &apigen_type_ichar;
+        case apigen_typeid_char:        return &apigen_type_char;
+        case apigen_typeid_u8:          return &apigen_type_u8;
+        case apigen_typeid_u16:         return &apigen_type_u16;
+        case apigen_typeid_u32:         return &apigen_type_u32;
+        case apigen_typeid_u64:         return &apigen_type_u64;
+        case apigen_typeid_usize:       return &apigen_type_usize;
+        case apigen_typeid_c_ushort:    return &apigen_type_c_ushort;
+        case apigen_typeid_c_uint:      return &apigen_type_c_uint;
+        case apigen_typeid_c_ulong:     return &apigen_type_c_ulong;
+        case apigen_typeid_c_ulonglong: return &apigen_type_c_ulonglong;
+        case apigen_typeid_i8:          return &apigen_type_i8;
+        case apigen_typeid_i16:         return &apigen_type_i16;
+        case apigen_typeid_i32:         return &apigen_type_i32;
+        case apigen_typeid_i64:         return &apigen_type_i64;
+        case apigen_typeid_isize:       return &apigen_type_isize;
+        case apigen_typeid_c_short:     return &apigen_type_c_short;
+        case apigen_typeid_c_int:       return &apigen_type_c_int;
+        case apigen_typeid_c_long:      return &apigen_type_c_long;
+        case apigen_typeid_c_longlong:  return &apigen_type_c_longlong;
+        default:                        return NULL;
+    }
+}
+
+static bool is_sentinelled_ptr(enum apigen_TypeId id)
+{
+    if(id == apigen_typeid_ptr_to_sentinelled_many) return true;
+    if(id == apigen_typeid_nullable_ptr_to_sentinelled_many) return true;
+    if(id == apigen_typeid_const_ptr_to_sentinelled_many) return true;
+    if(id == apigen_typeid_nullable_const_ptr_to_sentinelled_many) return true;
+
+    return false;
+}
+
+bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const * type2)
+{
+    APIGEN_NOT_NULL(type1);
+    APIGEN_NOT_NULL(type2);
+
+    if(type1 == type2) {
+        return true;
+    }
+    
+    if(type1->id != type2->id) {
+        return false;
+    }
+
+    
+    APIGEN_ASSERT(!apigen_is_type_builtin(type1->id)); // Builtins must be pointer-equal
+    
+    if(apigen_is_type_unique(type1->id)) {
+        // Unique types are pointer-equal, no deep equality
+        return false;
+    }
+
+    switch(type1->id)
+    {
+        case apigen_typeid_void:        __builtin_unreachable();
+        case apigen_typeid_anyopaque:   __builtin_unreachable();
+        case apigen_typeid_bool:        __builtin_unreachable();
+        case apigen_typeid_uchar:       __builtin_unreachable();
+        case apigen_typeid_ichar:       __builtin_unreachable();
+        case apigen_typeid_char:        __builtin_unreachable();
+        case apigen_typeid_u8:          __builtin_unreachable();
+        case apigen_typeid_u16:         __builtin_unreachable();
+        case apigen_typeid_u32:         __builtin_unreachable();
+        case apigen_typeid_u64:         __builtin_unreachable();
+        case apigen_typeid_usize:       __builtin_unreachable();
+        case apigen_typeid_c_ushort:    __builtin_unreachable();
+        case apigen_typeid_c_uint:      __builtin_unreachable();
+        case apigen_typeid_c_ulong:     __builtin_unreachable();
+        case apigen_typeid_c_ulonglong: __builtin_unreachable();
+        case apigen_typeid_i8:          __builtin_unreachable();
+        case apigen_typeid_i16:         __builtin_unreachable();
+        case apigen_typeid_i32:         __builtin_unreachable();
+        case apigen_typeid_i64:         __builtin_unreachable();
+        case apigen_typeid_isize:       __builtin_unreachable();
+        case apigen_typeid_c_short:     __builtin_unreachable();
+        case apigen_typeid_c_int:       __builtin_unreachable();
+        case apigen_typeid_c_long:      __builtin_unreachable();
+        case apigen_typeid_c_longlong:  __builtin_unreachable();
+
+        case apigen_typeid_opaque:      __builtin_unreachable();
+        case apigen_typeid_enum:        __builtin_unreachable();
+        case apigen_typeid_struct:      __builtin_unreachable();
+        case apigen_typeid_union:       __builtin_unreachable();
+
+        case apigen_typeid_ptr_to_one:
+        case apigen_typeid_ptr_to_many:
+        case apigen_typeid_ptr_to_sentinelled_many:
+        case apigen_typeid_nullable_ptr_to_one:
+        case apigen_typeid_nullable_ptr_to_many:
+        case apigen_typeid_nullable_ptr_to_sentinelled_many:
+        case apigen_typeid_const_ptr_to_one:
+        case apigen_typeid_const_ptr_to_many:
+        case apigen_typeid_const_ptr_to_sentinelled_many:
+        case apigen_typeid_nullable_const_ptr_to_one:
+        case apigen_typeid_nullable_const_ptr_to_many:
+        case apigen_typeid_nullable_const_ptr_to_sentinelled_many: {
+            struct apigen_Pointer const * const extra1 = type1->extra;
+            struct apigen_Pointer const * const extra2 = type2->extra;
+
+            if(!apigen_type_eql(extra1->underlying_type, extra2->underlying_type)) {
+                return false;
+            }
+
+            if(is_sentinelled_ptr(type1->id) && !apigen_value_eql(&extra1->sentinel, &extra2->sentinel)) {
+                return false;
+            }
+
+            return true;
+        }   
+
+        case apigen_typeid_array: {
+            struct apigen_Array const * const extra1 = type1->extra;
+            struct apigen_Array const * const extra2 = type2->extra;
+            
+            if(!apigen_type_eql(extra1->underlying_type, extra2->underlying_type)) {
+                return false;
+            }
+
+            if(extra1->size != extra2->size) {
+                return false;
+            }
+
+            return true;
+        }
+
+        case apigen_typeid_function:
+            apigen_panic("eql for apigen_typeid_function");
+
+
+        case APIGEN_TYPEID_LIMIT:       __builtin_unreachable();
+    }    
+}
+
+struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, struct apigen_Type const * unchecked_type)
+{
+    APIGEN_NOT_NULL(pool);
+    APIGEN_NOT_NULL(unchecked_type);
+
+    if(apigen_is_type_unique(unchecked_type->id)) {
+        // unique types are unique, they cannot be interned
+        return unchecked_type;
+    }
+    
+    if(apigen_is_type_builtin(unchecked_type->id)) {
+        // builtin types are assumed to be static, no need for interning
+        APIGEN_ASSERT(apigen_get_builtin_type(unchecked_type->id) == unchecked_type);
+        return unchecked_type;
+    }
+
+    struct apigen_TypePoolCache * cache_entry = pool->cache;
+    while(cache_entry) {
+        if(apigen_type_eql(&cache_entry->interned_type, unchecked_type)) {
+            fprintf(stderr, "cache hit for %s\n", apigen_type_str(unchecked_type->id));
+            return &cache_entry->interned_type;
+        }
+        cache_entry = cache_entry->next;
+    }
+
+    // TYPE was not inserted into the intern pool yet
+    cache_entry = apigen_memory_arena_alloc(pool->arena, sizeof(struct apigen_TypePoolCache));
+    *cache_entry = (struct apigen_TypePoolCache) {
+        .interned_type = *unchecked_type,
+        .next = pool->cache,        
+    };
+
+    // duplicate extra-storage
+    size_t extra_size = 0;
+    switch(cache_entry->interned_type.id) {
+        case apigen_typeid_ptr_to_one:
+        case apigen_typeid_ptr_to_many:
+        case apigen_typeid_ptr_to_sentinelled_many:
+        case apigen_typeid_nullable_ptr_to_one:
+        case apigen_typeid_nullable_ptr_to_many:
+        case apigen_typeid_nullable_ptr_to_sentinelled_many:
+        case apigen_typeid_const_ptr_to_one:
+        case apigen_typeid_const_ptr_to_many:
+        case apigen_typeid_const_ptr_to_sentinelled_many:
+        case apigen_typeid_nullable_const_ptr_to_one:
+        case apigen_typeid_nullable_const_ptr_to_many:
+        case apigen_typeid_nullable_const_ptr_to_sentinelled_many:
+            extra_size = sizeof(struct apigen_Pointer);
+            break;
+        case apigen_typeid_enum:
+            extra_size = sizeof(struct apigen_Enum);
+            break;
+
+        case apigen_typeid_struct:
+            extra_size = sizeof(struct apigen_UnionOrStruct);
+            break;
+
+        case apigen_typeid_union:
+            extra_size = sizeof(struct apigen_UnionOrStruct);
+            break;
+
+        case apigen_typeid_array:
+            extra_size = sizeof(struct apigen_Array);
+            break;
+
+        case apigen_typeid_function:
+            extra_size = sizeof(struct apigen_Function);
+            break;
+         
+        default:
+            extra_size = 0;
+            break;
+    }
+
+    if(extra_size > 0) {
+        void * extra_storage = apigen_memory_arena_alloc(pool->arena, extra_size);
+        memcpy( extra_storage, unchecked_type->extra, extra_size);
+        cache_entry->interned_type.extra = extra_storage;
+    }
+
+    fprintf(stderr, "cache insert for %s\n", apigen_type_str(unchecked_type->id));
+
+    pool->cache = cache_entry;
+
+    return &cache_entry->interned_type;
 }
 

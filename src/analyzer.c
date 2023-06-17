@@ -18,30 +18,93 @@ static bool is_unique_type(enum apigen_ParserTypeId id) {
     }
 }
 
+static enum apigen_TypeId mapPtrType(enum apigen_ParserTypeId src_type_id, bool is_const, bool is_optional)
+{
+    switch(src_type_id) {
+
+        case apigen_parser_type_ptr_to_one:
+            return is_const
+                ? (is_optional ? apigen_typeid_nullable_const_ptr_to_one : apigen_typeid_const_ptr_to_one) // const 
+                : (is_optional ? apigen_typeid_nullable_ptr_to_one       : apigen_typeid_ptr_to_one)       // mut
+            ;
+
+        case apigen_parser_type_ptr_to_many:
+            return is_const
+                ? (is_optional ? apigen_typeid_nullable_const_ptr_to_many : apigen_typeid_const_ptr_to_many) // const 
+                : (is_optional ? apigen_typeid_nullable_ptr_to_many       : apigen_typeid_ptr_to_many)       // mut
+            ;
+
+        case apigen_parser_type_ptr_to_many_sentinelled:
+            return is_const
+                ? (is_optional ? apigen_typeid_nullable_const_ptr_to_sentinelled_many : apigen_typeid_const_ptr_to_sentinelled_many) // const 
+                : (is_optional ? apigen_typeid_nullable_ptr_to_sentinelled_many       : apigen_typeid_ptr_to_sentinelled_many)       // mut
+            ;
+
+        default: apigen_panic("Unmapped type");
+    }
+}
+
 static struct apigen_Type const * resolve_type(struct apigen_TypePool * pool, struct apigen_ParserType const * src_type)
 {
     (void)pool;
     (void)src_type;
 
+
     switch(src_type->type) {
+
         case apigen_parser_type_named:
             return apigen_lookup_type(pool,src_type->named_data);
             
-        case apigen_parser_type_array: {
-            apigen_panic("resolving array not implemented yet!");
-        }
-        case apigen_parser_type_ptr_to_one: {
-            apigen_panic("resolving ptr_to_one not implemented yet!");
-        }
-        case apigen_parser_type_ptr_to_many: {
-            apigen_panic("resolving ptr_to_many not implemented yet!");
-        }
+        case apigen_parser_type_ptr_to_one:
+        case apigen_parser_type_ptr_to_many:
         case apigen_parser_type_ptr_to_many_sentinelled: {
-            apigen_panic("resolving ptr_to_many_sentinelled not implemented yet!");
+            struct apigen_Type const * const underlying_type = resolve_type(pool, src_type->pointer_data.underlying_type);
+            if(underlying_type == NULL) {
+                return NULL;
+            }
+            
+            struct apigen_Pointer const extra_data = (struct apigen_Pointer) {
+                .underlying_type = underlying_type,
+                .sentinel        = src_type->pointer_data.sentinel,
+            };
+            
+            struct apigen_Type const pointer_type = {
+                .name = NULL,
+                .id = mapPtrType(src_type->type, src_type->pointer_data.is_const, src_type->pointer_data.is_optional),
+                .extra = &extra_data,
+            };
+
+            return apigen_intern_type(pool, &pointer_type);
         }
+
+        case apigen_parser_type_array: {
+            struct apigen_Type const * const underlying_type = resolve_type(pool, src_type->array_data.underlying_type);
+            if(underlying_type == NULL) {
+                return NULL;
+            }
+            if(src_type->array_data.size.type != apigen_value_uint) {
+                apigen_panic("TODO: Emit actual error when array index is not an uint!");
+            }
+
+            struct apigen_Array const extra_data = (struct apigen_Array) {
+                .underlying_type = underlying_type,
+                .size            = src_type->array_data.size.value_uint,
+            };
+            
+            struct apigen_Type const array_type = {
+                .name = NULL,
+                .id = apigen_typeid_array,
+                .extra = &extra_data,
+            };
+
+            return apigen_intern_type(pool, &array_type);
+        }
+
         case apigen_parser_type_function: {
             apigen_panic("resolving function not implemented yet!");
         }
+
+
         case apigen_parser_type_enum: 
         case apigen_parser_type_struct:
         case apigen_parser_type_union: 
@@ -158,9 +221,8 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                         struct apigen_Type const * const resolved_type = resolve_type(&out_document->type_pool, &decl->type);
                         if(resolved_type != NULL) {
 
-
                             if(apigen_register_type(&out_document->type_pool, resolved_type, decl->identifier)) {
-                                decl->associated_type = (struct apigen_Type *)resolved_type;
+                                decl->associated_type = (struct apigen_Type *)resolved_type; // TODO: This is fine, we don't need the mutable reference here anyways
                                 resolved_count += 1;
                             }
                             else {

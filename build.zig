@@ -7,6 +7,7 @@ const strict_cflags = lax_cflags ++ [_][]const u8{
     "-Wall",
     "-Wextra",
     "-Wunused-parameter",
+    "-Wreturn-type",
 };
 
 pub fn build(b: *std.Build) void {
@@ -123,6 +124,11 @@ pub fn build(b: *std.Build) void {
     }
 }
 
+const general_examples = [_][]const u8{
+    // "examples/apigen.api",
+    // "examples/pax.api",
+};
+
 const parser_test_files = [_][]const u8{
     "tests/parser/primitives.api",
     "tests/parser/constexpr.api",
@@ -145,10 +151,13 @@ const parser_test_files = [_][]const u8{
 
     // extra
     "tests/parser/paxfuncs.api",
-};
+} ++ general_examples;
 
 const analyzer_test_files = [_][]const u8{
     "tests/analyzer/builtin.api",
     "tests/analyzer/forward-ref.api",
     "tests/analyzer/backward-ref.api",
-};
+    "tests/analyzer/interning.api",
+    "tests/analyzer/pointers.api",
+    "tests/analyzer/arrays.api",
+} ++ general_examples;

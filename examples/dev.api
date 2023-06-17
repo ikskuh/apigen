@@ -1,8 +1,0 @@
-
-
-type Point = struct {
-    x: i32,
-    y: i32,
-};
-
-type AlsoType = Point;
