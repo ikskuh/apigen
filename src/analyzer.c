@@ -101,7 +101,54 @@ static struct apigen_Type const * resolve_type(struct apigen_TypePool * pool, st
         }
 
         case apigen_parser_type_function: {
-            apigen_panic("resolving function not implemented yet!");
+            struct apigen_Type const * const return_type = resolve_type(pool, src_type->function_data.return_type);
+            if(return_type == NULL) {
+                return NULL;
+            }
+
+            size_t parameter_count = 0;
+            {
+                struct apigen_ParserField const * param_iter = src_type->function_data.parameters;
+                while(param_iter != NULL) {
+                    parameter_count += 1;
+                    param_iter = param_iter->next;
+                }
+            }
+
+            struct apigen_NamedValue * const parameters = apigen_memory_arena_alloc(pool->arena, parameter_count * sizeof(struct apigen_Type));
+            {
+                size_t index = 0;
+                struct apigen_ParserField const * param_iter = src_type->function_data.parameters;
+                while(param_iter != NULL) {
+
+                    parameters[index] = (struct apigen_NamedValue) {
+                        .documentation = param_iter->documentation,
+                        .name = param_iter->identifier,
+                        .type = resolve_type(pool, &param_iter->type),
+                    };
+                    if(parameters[index].type == NULL) {
+                        return NULL;
+                    }
+
+                    index += 1;
+                    param_iter = param_iter->next;
+                }
+                APIGEN_ASSERT(parameter_count == index);
+            }
+
+            struct apigen_Function const extra_data = (struct apigen_Function) {
+                .return_type = return_type,
+                .parameter_count = parameter_count,
+                .parameters = parameters,  
+            };
+            
+            struct apigen_Type const array_type = {
+                .name = NULL,
+                .id = apigen_typeid_function,
+                .extra = &extra_data,
+            };
+
+            return apigen_intern_type(pool, &array_type);
         }
 
         case apigen_parser_type_enum: 

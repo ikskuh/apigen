@@ -1,0 +1,14 @@
+
+
+type Color = struct {
+  r: u8,
+  g: u8,
+  b: u8,
+  a: u8, 
+};
+
+type Handle = opaque {};
+
+type arr2d = [64][32]Color;
+
+type arr_of_handle = [8][1][4] * const Handle;

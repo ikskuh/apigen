@@ -160,4 +160,6 @@ const analyzer_test_files = [_][]const u8{
     "tests/analyzer/interning.api",
     "tests/analyzer/pointers.api",
     "tests/analyzer/arrays.api",
+    "tests/analyzer/early-ref-unique.api",
+    "tests/analyzer/func.api",
 } ++ general_examples;

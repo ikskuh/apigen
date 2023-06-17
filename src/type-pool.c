@@ -263,6 +263,9 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
         case apigen_typeid_nullable_const_ptr_to_one:
         case apigen_typeid_nullable_const_ptr_to_many:
         case apigen_typeid_nullable_const_ptr_to_sentinelled_many: {
+            APIGEN_NOT_NULL(type1->extra);
+            APIGEN_NOT_NULL(type2->extra);
+
             struct apigen_Pointer const * const extra1 = type1->extra;
             struct apigen_Pointer const * const extra2 = type2->extra;
 
@@ -278,6 +281,9 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
         }   
 
         case apigen_typeid_array: {
+            APIGEN_NOT_NULL(type1->extra);
+            APIGEN_NOT_NULL(type2->extra);
+
             struct apigen_Array const * const extra1 = type1->extra;
             struct apigen_Array const * const extra2 = type2->extra;
             
@@ -292,8 +298,45 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
             return true;
         }
 
-        case apigen_typeid_function:
-            apigen_panic("eql for apigen_typeid_function");
+        case apigen_typeid_function: {
+            APIGEN_NOT_NULL(type1->extra);
+            APIGEN_NOT_NULL(type2->extra);
+
+            struct apigen_Function const * const extra1 = type1->extra;
+            struct apigen_Function const * const extra2 = type2->extra;
+            
+            if(extra1->parameter_count != extra2->parameter_count) {
+                return false;
+            }
+
+            if(!apigen_type_eql(extra1->return_type, extra2->return_type)) {
+                return false;
+            }
+
+            for(size_t i = 0; i < extra1->parameter_count; i++)
+            {
+                if(!apigen_streq(extra1->parameters[i].name, extra2->parameters[i].name)) {
+                    return false;
+                }
+
+                bool const doc1 = (extra1->parameters[i].documentation != NULL);
+                bool const doc2 = (extra2->parameters[i].documentation != NULL);
+
+                if(doc1 != doc2) {
+                    return false;
+                }
+                
+                if(doc1 && !apigen_streq(extra1->parameters[i].documentation, extra2->parameters[i].documentation)) {
+                    return false;
+                }
+                
+                if(!apigen_type_eql(extra1->parameters[i].type, extra2->parameters[i].type)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
 
         case APIGEN_TYPEID_LIMIT:       __builtin_unreachable();
