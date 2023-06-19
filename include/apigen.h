@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #define APIGEN_STR(_X) #_X
 #define APIGEN_SSTR(_X) APIGEN_STR(_X)
@@ -23,34 +24,39 @@
       apigen_panic(__FILE__ ":" APIGEN_SSTR(__LINE__) ":Assertion failure: " #_Cond " did not assert!");          \
   } while (false)
 
-typedef void *apigen_Stream;
-typedef void (*apigen_StreamWriter)(apigen_Stream stream, char const *string,
-                                    size_t length);
-
-#define APIGEN_IO_WRITE_STR(_Stream, _Writer, _X)                              \
-  _Writer(_Stream, _X, strlen(_X))
+struct apigen_Stream 
+{
+    void * context;
+    void (*write)(void * context, char const * data, size_t length);
+};
 
 void APIGEN_NORETURN apigen_panic(char const *msg);
 
 bool apigen_streq(char const * str1, char const * str2);
 
-void apigen_io_writeStdOut(apigen_Stream null_stream, char const *string,
-                           size_t length);
-void apigen_io_writeStdErr(apigen_Stream null_stream, char const *string,
-                           size_t length);
-void apigen_io_writeFile(apigen_Stream file, char const *string, size_t length);
+extern struct apigen_Stream const apigen_io_stdout;
+extern struct apigen_Stream const apigen_io_stderr;
+extern struct apigen_Stream const apigen_io_null;
 
+struct apigen_Stream apigen_io_file_stream(FILE * file);
+
+void apigen_io_write(struct apigen_Stream stream, char const * data, size_t length);
+void apigen_io_printf(struct apigen_Stream stream, char const * format, ...);
+void apigen_io_vprintf(struct apigen_Stream stream, char const * format, va_list list);
+void apigen_io_write_string(struct apigen_Stream stream, char const * data);
 
 // generic values:
 
-enum apigen_ValueType {
+enum apigen_ValueType
+{
     apigen_value_null,
     apigen_value_sint,
     apigen_value_uint,
     apigen_value_str,
 };
 
-struct apigen_Value {
+struct apigen_Value
+{
     enum apigen_ValueType type;
     union {
         uint64_t     value_uint; ///< active when type==apigen_value_uint
@@ -64,7 +70,7 @@ bool apigen_value_eql(struct apigen_Value const * val1, struct apigen_Value cons
 enum apigen_TypeId {
   apigen_typeid_void,
   apigen_typeid_anyopaque,
-  apigen_typeid_opaque,
+  apigen_typeid_opaque, // extra: none
 
   apigen_typeid_bool,
 
@@ -93,6 +99,10 @@ enum apigen_TypeId {
   apigen_typeid_c_int,
   apigen_typeid_c_long,
   apigen_typeid_c_longlong,
+
+  // floats
+  apigen_typeid_f32,
+  apigen_typeid_f64,
 
   // pointers:
   apigen_typeid_ptr_to_one,                       // extra: apigen_Type
@@ -216,6 +226,8 @@ char const * apigen_type_str(enum apigen_TypeId id);
 
 bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const * type2);
 
+struct apigen_Type const * apigen_get_builtin_type(enum apigen_TypeId id);
+
 // documents:
 
 struct apigen_Global {
@@ -257,6 +269,7 @@ struct apigen_ParserState {
   char const * file_name;
   struct apigen_MemoryArena *ast_arena;
   char const * line_feed; ///< used for multiline strings
+  struct apigen_Diagnostics * diagnostics;
 
   // output data:
   struct apigen_ParserDeclaration * top_level_declarations;
@@ -270,7 +283,78 @@ bool apigen_parse(struct apigen_ParserState *state);
 /// types and declarations
 bool apigen_analyze(struct apigen_ParserState *state, struct apigen_Document * out_document);
 
+// diagnostics:
 
+#define APIGEN_DIAGNOSTIC_FIRST_ERR   1000
+#define APIGEN_DIAGNOSTIC_LAST_ERR    5999
+
+#define APIGEN_DIAGNOSTIC_FIRST_WARN  6000
+#define APIGEN_DIAGNOSTIC_LAST_WARN  11999
+
+#define APIGEN_DIAGNOSTIC_FIRST_NOTE 12000
+#define APIGEN_DIAGNOSTIC_LAST_NOTE  14999
+
+// Expects _Mac(Symbol, ID, Format String)
+#define APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(_Mac)          \
+    _Mac(apigen_error_array_size_not_uint,   1000, "Array size is not an unsigend integer")    \
+    _Mac(apigen_error_duplicate_field,       1001, "")    \
+    _Mac(apigen_error_duplicate_parameter,   1002, "A parameter with the name '%s' already exists")    \
+    _Mac(apigen_error_duplicate_enum_item,   1003, "An enumeration member with the name 's' already exists")    \
+    _Mac(apigen_error_duplicate_enum_value,  1004, "Enumeration value %s is already assigned to enumeration member '%s'")    \
+    _Mac(apigen_error_enum_out_of_range,     1005, "Value %s is out of range for enumeration member '%s'")    \
+    _Mac(apigen_error_enum_value_illegal,    1006, "Enumeration member '%s' has a non-integer value")    \
+    _Mac(apigen_error_duplicate_symbol,      1007, "The symbol '%s' is already declared") \
+    _Mac(apigen_error_syntax_error,          1008, "Syntax error at symbol '%s': %s")     \
+    _Mac(apigen_error_undeclared_identifier, 1009, "Undeclared identifier '%s'")        \
+    _Mac(apigen_error_unresolved_symbols,    1010, "Found %zu cyclic dependencies or undeclared types")  \
+    _Mac(apigen_error_enum_type_must_be_int, 1011, "Enum backing type must be an integer") \
+    _Mac(apigen_error_enum_empty,            1012, "Enums must contain at least one item") \
+    \
+    _Mac(apigen_warning_enum_int_undefined,  6000, "Chosen enum backing type %s has no well-defined range. Generated code may not be portable")
+
+enum apigen_diagnostic_code
+{
+#define APIGEN_TEMP_MACRO(_Symbol, _Id, _Format) _Symbol = _Id,
+APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(APIGEN_TEMP_MACRO)
+#undef  APIGEN_TEMP_MACRO
+};
+
+struct apigen_diagnostic_item;
+
+#define APIGEN_DIAGNOSTIC_FLAG_ERROR (1U<<0)
+#define APIGEN_DIAGNOSTIC_FLAG_WARN  (1U<<1)
+#define APIGEN_DIAGNOSTIC_FLAG_NOTE  (1U<<2)
+
+struct apigen_Diagnostics
+{
+    struct apigen_MemoryArena * arena;
+    size_t item_count;
+    struct apigen_diagnostic_item * items;
+    uint32_t flags;
+};
+
+void apigen_diagnostics_init(struct apigen_Diagnostics * diags, struct apigen_MemoryArena * arena);
+void apigen_diagnostics_deinit(struct apigen_Diagnostics * diags);
+
+void apigen_diagnostics_emit(
+    struct apigen_Diagnostics * diags,
+    char const * file_name,
+    uint32_t line_number,
+    uint32_t column_number,
+    enum apigen_diagnostic_code code, 
+    ...);
+
+void apigen_diagnostics_vemit(
+    struct apigen_Diagnostics * diags,
+    char const * file_name,
+    uint32_t line_number,
+    uint32_t column_number,
+    enum apigen_diagnostic_code code, 
+    va_list list);
+
+
+
+void apigen_diagnostics_render(struct apigen_Diagnostics const * diags, struct apigen_Stream stream);
 
 // predefined types:
 extern struct apigen_Type const apigen_type_void;
@@ -297,4 +381,6 @@ extern struct apigen_Type const apigen_type_c_short;
 extern struct apigen_Type const apigen_type_c_int;
 extern struct apigen_Type const apigen_type_c_long;
 extern struct apigen_Type const apigen_type_c_longlong;
+extern struct apigen_Type const apigen_type_f32;
+extern struct apigen_Type const apigen_type_f64;
 

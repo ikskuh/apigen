@@ -26,6 +26,8 @@ struct apigen_Type const apigen_type_c_short     = { .id = apigen_typeid_c_short
 struct apigen_Type const apigen_type_c_int       = { .id = apigen_typeid_c_int };
 struct apigen_Type const apigen_type_c_long      = { .id = apigen_typeid_c_long };
 struct apigen_Type const apigen_type_c_longlong  = { .id = apigen_typeid_c_longlong };
+struct apigen_Type const apigen_type_f32         = { .id = apigen_typeid_f32 };
+struct apigen_Type const apigen_type_f64         = { .id = apigen_typeid_f64 };
 
 
 /// Pool nodes contain a name <-> value association, stored
@@ -77,6 +79,8 @@ struct apigen_Type const * apigen_lookup_type(struct apigen_TypePool const * poo
     if(apigen_streq(type_name, "c_int"))       return &apigen_type_c_int;
     if(apigen_streq(type_name, "c_long"))      return &apigen_type_c_long;
     if(apigen_streq(type_name, "c_longlong"))  return &apigen_type_c_longlong;
+    if(apigen_streq(type_name, "f32"))         return &apigen_type_f32;
+    if(apigen_streq(type_name, "f64"))         return &apigen_type_f64;
 
     // search in well-known types:
     {
@@ -154,11 +158,13 @@ static bool apigen_is_type_builtin(enum apigen_TypeId id)
         case apigen_typeid_c_int:       return true;
         case apigen_typeid_c_long:      return true;
         case apigen_typeid_c_longlong:  return true;
+        case apigen_typeid_f32:  return true;
+        case apigen_typeid_f64:  return true;
         default:                        return false;
     }
 }
 
-static struct apigen_Type const * apigen_get_builtin_type(enum apigen_TypeId id)
+struct apigen_Type const * apigen_get_builtin_type(enum apigen_TypeId id)
 {
     switch(id) {
         case apigen_typeid_void:        return &apigen_type_void;
@@ -185,6 +191,8 @@ static struct apigen_Type const * apigen_get_builtin_type(enum apigen_TypeId id)
         case apigen_typeid_c_int:       return &apigen_type_c_int;
         case apigen_typeid_c_long:      return &apigen_type_c_long;
         case apigen_typeid_c_longlong:  return &apigen_type_c_longlong;
+        case apigen_typeid_f32:         return &apigen_type_f32;
+        case apigen_typeid_f64:         return &apigen_type_f64;
         default:                        return NULL;
     }
 }
@@ -245,6 +253,8 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
         case apigen_typeid_c_int:       __builtin_unreachable();
         case apigen_typeid_c_long:      __builtin_unreachable();
         case apigen_typeid_c_longlong:  __builtin_unreachable();
+        case apigen_typeid_f32:         __builtin_unreachable();
+        case apigen_typeid_f64:         __builtin_unreachable();
 
         case apigen_typeid_opaque:      __builtin_unreachable();
         case apigen_typeid_enum:        __builtin_unreachable();

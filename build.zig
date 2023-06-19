@@ -72,6 +72,7 @@ pub fn build(b: *std.Build) void {
             "src/io.c",
             "src/memory.c",
             "src/base.c",
+            "src/diag.c",
             "src/type-pool.c",
             "src/analyzer.c",
             "src/parser/parser.c",
@@ -154,12 +155,12 @@ const parser_test_files = [_][]const u8{
 } ++ general_examples;
 
 const analyzer_test_files = [_][]const u8{
-    "tests/analyzer/builtin.api",
-    "tests/analyzer/forward-ref.api",
-    "tests/analyzer/backward-ref.api",
-    "tests/analyzer/interning.api",
-    "tests/analyzer/pointers.api",
-    "tests/analyzer/arrays.api",
-    "tests/analyzer/early-ref-unique.api",
-    "tests/analyzer/func.api",
+    "tests/analyzer/ok/builtin.api",
+    "tests/analyzer/ok/forward-ref.api",
+    "tests/analyzer/ok/backward-ref.api",
+    "tests/analyzer/ok/interning.api",
+    "tests/analyzer/ok/pointers.api",
+    "tests/analyzer/ok/arrays.api",
+    "tests/analyzer/ok/early-ref-unique.api",
+    "tests/analyzer/ok/func.api",
 } ++ general_examples;

@@ -1,0 +1,3 @@
+// expected: 1012
+
+type f1 = enum {};

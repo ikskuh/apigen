@@ -1,4 +1,6 @@
 
+type name = enum { };
+
 type name = enum { a  };
 type name = enum { a, };
 

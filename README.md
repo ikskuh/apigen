@@ -44,6 +44,8 @@ fn apigen_memory_arena_deinit(arena: *apigen_MemoryArena) void;
 - [ ] Pointer alignment
 - [ ] Macro/inline function support
 - [ ] Implementation stub generator
+- [ ] Packed structs
+- [ ] Bitfield generation (Zig: `packed struct`, C: int + macro helpers, Rust: ???)
 
 ## Building
 

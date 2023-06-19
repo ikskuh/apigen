@@ -2,7 +2,7 @@
 
 #include "apigen.h"
  
-struct apigen_ParserLType
+struct apigen_ParserLocation
 {
   int first_line;
   int first_column;
@@ -29,6 +29,7 @@ enum apigen_ParserTypeId {
 };
 
 struct apigen_ParserType {
+    struct apigen_ParserLocation location;
     enum apigen_ParserTypeId type;
     union {
         struct {
@@ -59,6 +60,7 @@ struct apigen_ParserEnumItem {
     char const * identifier;
     struct apigen_Value value;
     struct apigen_ParserEnumItem * next;
+    struct apigen_ParserLocation location;
 };
 
 struct apigen_ParserField {
@@ -66,6 +68,7 @@ struct apigen_ParserField {
     char const * identifier;
     struct apigen_ParserType type;
     struct apigen_ParserField * next;
+    struct apigen_ParserLocation location;
 };
 
 enum apigen_ParserDeclarationKind {
@@ -82,6 +85,8 @@ struct apigen_ParserDeclaration {
     char const * identifier;
     struct apigen_ParserType type;
     struct apigen_Value       initial_value;
+    struct apigen_ParserLocation location;
+
     struct apigen_ParserDeclaration * next;
 
     struct apigen_Type * associated_type;
@@ -100,9 +105,8 @@ union apigen_ParserAstNode {
     struct apigen_ParserDeclaration * file;
 };
 
-typedef struct apigen_ParserLType YYLTYPE;
+typedef struct apigen_ParserLocation YYLTYPE;
 typedef union apigen_ParserAstNode YYSTYPE;
-
 
 struct apigen_Value apigen_parser_conv_regular_str(struct apigen_ParserState *state, char const * literal);
 struct apigen_Value apigen_parser_conv_multiline_str(struct apigen_ParserState *state, char const * literal);

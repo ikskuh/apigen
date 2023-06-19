@@ -1,0 +1,4 @@
+// expected: 1005
+
+type func1 = struct { a: u32 };
+type func1 = struct { a: u32 };

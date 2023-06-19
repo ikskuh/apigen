@@ -1,0 +1,3 @@
+// expected: 6000
+
+type f1 = enum(usize) {a};

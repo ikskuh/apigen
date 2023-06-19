@@ -39,7 +39,7 @@ static inline char * strdup(char const * string)
     }
 
 
-typedef struct apigen_ParserLType YYLTYPE;
+typedef struct apigen_ParserLocation YYLTYPE;
 typedef union  apigen_ParserAstNode YYSTYPE;
 %}
 

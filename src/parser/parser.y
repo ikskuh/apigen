@@ -16,7 +16,7 @@ extern YY_DECL;
 #include "lexer.yy.h"
 
 int yyerror(
-    struct apigen_ParserLType const * location,
+    struct apigen_ParserLocation const * location,
     yyscan_t scanner, 
     struct apigen_ParserState * parser_state,
     char const * err_string
@@ -32,7 +32,7 @@ int yyerror(
 
 %define api.prefix {apigen_parser_}
 %define api.value.type {union apigen_ParserAstNode}
-%define api.location.type {struct apigen_ParserLType}
+%define api.location.type {struct apigen_ParserLocation}
 
 
 %start	file 
@@ -88,26 +88,26 @@ declaration_list:
 ;
 
 declaration:
-         KW_CONST     IDENTIFIER ':' type ';'            { $$ = (struct apigen_ParserDeclaration) { .kind = apigen_parser_const_declaration, .documentation = NULL, .identifier = $2, .type = $4 }; }
-|        KW_VAR       IDENTIFIER ':' type ';'            { $$ = (struct apigen_ParserDeclaration) { .kind = apigen_parser_var_declaration,   .documentation = NULL, .identifier = $2, .type = $4 }; }
-|        KW_TYPE      IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .kind = apigen_parser_type_declaration,  .documentation = NULL, .identifier = $2, .type = $4 }; }
-|        KW_CONSTEXPR IDENTIFIER ':' type '=' value ';'  { $$ = (struct apigen_ParserDeclaration) { .kind = apigen_parser_type_declaration,  .documentation = NULL, .identifier = $2, .type = $4, .initial_value = $6 }; }
-|        KW_FN        IDENTIFIER function_signature ';'  { $$ = (struct apigen_ParserDeclaration) { .kind = apigen_parser_type_declaration,  .documentation = NULL, .identifier = $2, .type = $3 }; }
-|   docs KW_CONST     IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .kind = apigen_parser_const_declaration, .documentation = $1,   .identifier = $3, .type = $5 }; }
-|   docs KW_VAR       IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .kind = apigen_parser_var_declaration,   .documentation = $1,   .identifier = $3, .type = $5 }; }
-|   docs KW_TYPE      IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .kind = apigen_parser_type_declaration,  .documentation = $1,   .identifier = $3, .type = $5 }; }
-|   docs KW_CONSTEXPR IDENTIFIER ':' type '=' value ';'  { $$ = (struct apigen_ParserDeclaration) { .kind = apigen_parser_type_declaration,  .documentation = $1,   .identifier = $3, .type = $5, .initial_value = $7 }; }
-|   docs KW_FN        IDENTIFIER function_signature ';'  { $$ = (struct apigen_ParserDeclaration) { .kind = apigen_parser_type_declaration,  .documentation = $1,   .identifier = $3, .type = $4 }; }
+         KW_CONST     IDENTIFIER ':' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_const_declaration, .documentation = NULL, .identifier = $2, .type = $4 }; }
+|        KW_VAR       IDENTIFIER ':' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_var_declaration,   .documentation = NULL, .identifier = $2, .type = $4 }; }
+|        KW_TYPE      IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_type_declaration,  .documentation = NULL, .identifier = $2, .type = $4 }; }
+|        KW_CONSTEXPR IDENTIFIER ':' type '=' value ';'  { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_type_declaration,  .documentation = NULL, .identifier = $2, .type = $4, .initial_value = $6 }; }
+|        KW_FN        IDENTIFIER function_signature ';'  { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_type_declaration,  .documentation = NULL, .identifier = $2, .type = $3 }; }
+|   docs KW_CONST     IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_const_declaration, .documentation = $1,   .identifier = $3, .type = $5 }; }
+|   docs KW_VAR       IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_var_declaration,   .documentation = $1,   .identifier = $3, .type = $5 }; }
+|   docs KW_TYPE      IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_type_declaration,  .documentation = $1,   .identifier = $3, .type = $5 }; }
+|   docs KW_CONSTEXPR IDENTIFIER ':' type '=' value ';'  { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_type_declaration,  .documentation = $1,   .identifier = $3, .type = $5, .initial_value = $7 }; }
+|   docs KW_FN        IDENTIFIER function_signature ';'  { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_type_declaration,  .documentation = $1,   .identifier = $3, .type = $4 }; }
 ;
 
 type:
     primitive_type
 |   function_type
-|   KW_ENUM   '(' named_type ')' '{' enum_items '}'  { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_enum, .enum_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $3), .items = $6 } }; }
-|   KW_ENUM                      '{' enum_items '}'  { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_enum, .enum_data = { .underlying_type = NULL,                                         .items = $3 } }; }
-|   KW_UNION                     '{' field_list '}'  { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_union,  .union_struct_fields = $3 }; }
-|   KW_STRUCT                    '{' field_list '}'  { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_struct, .union_struct_fields = $3 }; }
-|   KW_OPAQUE                    '{' '}'             { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_opaque }; }
+|   KW_ENUM   '(' named_type ')' '{' enum_items '}'  { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_enum, .enum_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $3), .items = $6 } }; }
+|   KW_ENUM                      '{' enum_items '}'  { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_enum, .enum_data = { .underlying_type = NULL,                                         .items = $3 } }; }
+|   KW_UNION                     '{' field_list '}'  { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_union,  .union_struct_fields = $3 }; }
+|   KW_STRUCT                    '{' field_list '}'  { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_struct, .union_struct_fields = $3 }; }
+|   KW_OPAQUE                    '{' '}'             { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_opaque }; }
 ;
 
 function_type:
@@ -115,27 +115,27 @@ function_type:
 ;
 
 function_signature:
-    '(' field_list ')' type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_function, .function_data = { .parameters = $2, .return_type = apigen_parser_heapify_type(parser_state, $4) } }; }
+    '(' field_list ')' type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_function, .function_data = { .parameters = $2, .return_type = apigen_parser_heapify_type(parser_state, $4) } }; }
 ;
 
 primitive_type:
-    '*'                       KW_CONST type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_one,              .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $3), .is_const = true,  .is_optional = false, .sentinel = APIGEN_VALUE_NULL } }; }
-|       '[' '*' ']'           KW_CONST type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_many,             .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $5), .is_const = true,  .is_optional = false, .sentinel = APIGEN_VALUE_NULL } }; }
-|       '[' '*' ':' value ']' KW_CONST type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_many_sentinelled, .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $7), .is_const = true,  .is_optional = false, .sentinel = $4 } }; }
-|   '?' '*'                   KW_CONST type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_one,              .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $4), .is_const = true,  .is_optional = true,  .sentinel = APIGEN_VALUE_NULL } }; }
-|   '?' '[' '*' ']'           KW_CONST type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_many,             .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $6), .is_const = true,  .is_optional = true,  .sentinel = APIGEN_VALUE_NULL } }; }
-|   '?' '[' '*' ':' value ']' KW_CONST type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_many_sentinelled, .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $8), .is_const = true,  .is_optional = true,  .sentinel = $5 } }; }
-|       '*'                            type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_one,              .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $2), .is_const = false, .is_optional = false, .sentinel = APIGEN_VALUE_NULL } }; }
-|       '[' '*' ']'                    type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_many,             .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $4), .is_const = false, .is_optional = false, .sentinel = APIGEN_VALUE_NULL } }; }
-|       '[' '*' ':' value ']'          type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_many_sentinelled, .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $6), .is_const = false, .is_optional = false, .sentinel = $4 } }; }
-|   '?' '*'                            type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_one,              .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $3), .is_const = false, .is_optional = true,  .sentinel = APIGEN_VALUE_NULL } }; }
-|   '?' '[' '*' ']'                    type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_many,             .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $5), .is_const = false, .is_optional = true,  .sentinel = APIGEN_VALUE_NULL } }; }
-|   '?' '[' '*' ':' value ']'          type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_ptr_to_many_sentinelled, .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $7), .is_const = false, .is_optional = true,  .sentinel = $5 } }; }
-|   '[' value ']'                      type { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_array, .array_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $4), .size = $2 } }; }
+    '*'                       KW_CONST type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_one,              .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $3), .is_const = true,  .is_optional = false, .sentinel = APIGEN_VALUE_NULL } }; }
+|       '[' '*' ']'           KW_CONST type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_many,             .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $5), .is_const = true,  .is_optional = false, .sentinel = APIGEN_VALUE_NULL } }; }
+|       '[' '*' ':' value ']' KW_CONST type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_many_sentinelled, .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $7), .is_const = true,  .is_optional = false, .sentinel = $4 } }; }
+|   '?' '*'                   KW_CONST type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_one,              .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $4), .is_const = true,  .is_optional = true,  .sentinel = APIGEN_VALUE_NULL } }; }
+|   '?' '[' '*' ']'           KW_CONST type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_many,             .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $6), .is_const = true,  .is_optional = true,  .sentinel = APIGEN_VALUE_NULL } }; }
+|   '?' '[' '*' ':' value ']' KW_CONST type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_many_sentinelled, .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $8), .is_const = true,  .is_optional = true,  .sentinel = $5 } }; }
+|       '*'                            type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_one,              .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $2), .is_const = false, .is_optional = false, .sentinel = APIGEN_VALUE_NULL } }; }
+|       '[' '*' ']'                    type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_many,             .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $4), .is_const = false, .is_optional = false, .sentinel = APIGEN_VALUE_NULL } }; }
+|       '[' '*' ':' value ']'          type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_many_sentinelled, .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $6), .is_const = false, .is_optional = false, .sentinel = $4 } }; }
+|   '?' '*'                            type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_one,              .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $3), .is_const = false, .is_optional = true,  .sentinel = APIGEN_VALUE_NULL } }; }
+|   '?' '[' '*' ']'                    type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_many,             .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $5), .is_const = false, .is_optional = true,  .sentinel = APIGEN_VALUE_NULL } }; }
+|   '?' '[' '*' ':' value ']'          type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_ptr_to_many_sentinelled, .pointer_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $7), .is_const = false, .is_optional = true,  .sentinel = $5 } }; }
+|   '[' value ']'                      type { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_array, .array_data = { .underlying_type = apigen_parser_heapify_type(parser_state, $4), .size = $2 } }; }
 |   named_type
 ;
 
-named_type: IDENTIFIER { $$ = (struct apigen_ParserType) { .type = apigen_parser_type_named, .named_data = $1 }; }
+named_type: IDENTIFIER { $$ = (struct apigen_ParserType) { .location = yyloc, .type = apigen_parser_type_named, .named_data = $1 }; }
 
 field_list:
     field_list_inner      { $$ = $1; }
@@ -149,13 +149,14 @@ field_list_inner:
 ;
 
 field: 
-    docs IDENTIFIER ':' type    { $$ = (struct apigen_ParserField) { .documentation = $1,   .identifier = $2, .type = $4 }; }
-|        IDENTIFIER ':' type    { $$ = (struct apigen_ParserField) { .documentation = NULL, .identifier = $1, .type = $3 }; }
+    docs IDENTIFIER ':' type    { $$ = (struct apigen_ParserField) { .location = yyloc, .documentation = $1,   .identifier = $2, .type = $4 }; }
+|        IDENTIFIER ':' type    { $$ = (struct apigen_ParserField) { .location = yyloc, .documentation = NULL, .identifier = $1, .type = $3 }; }
 ;
 
 enum_items:
     enum_items_inner      { $$ = $1; }
 |   enum_items_inner ','  { $$ = $1; }
+|                         { $$ = NULL; }
 ;
 
 enum_items_inner:
@@ -164,10 +165,10 @@ enum_items_inner:
 ;
 
 enum_item:
-    docs IDENTIFIER            { $$ = (struct apigen_ParserEnumItem) { .documentation = $1,   .identifier = $2, .value = APIGEN_VALUE_NULL }; }
-|        IDENTIFIER            { $$ = (struct apigen_ParserEnumItem) { .documentation = NULL, .identifier = $1, .value = APIGEN_VALUE_NULL }; }
-|   docs IDENTIFIER '=' value  { $$ = (struct apigen_ParserEnumItem) { .documentation = $1,   .identifier = $2, .value = $4 }; }
-|        IDENTIFIER '=' value  { $$ = (struct apigen_ParserEnumItem) { .documentation = NULL, .identifier = $1, .value = $3 }; }
+    docs IDENTIFIER            { $$ = (struct apigen_ParserEnumItem) { .location = yyloc, .documentation = $1,   .identifier = $2, .value = APIGEN_VALUE_NULL }; }
+|        IDENTIFIER            { $$ = (struct apigen_ParserEnumItem) { .location = yyloc, .documentation = NULL, .identifier = $1, .value = APIGEN_VALUE_NULL }; }
+|   docs IDENTIFIER '=' value  { $$ = (struct apigen_ParserEnumItem) { .location = yyloc, .documentation = $1,   .identifier = $2, .value = $4 }; }
+|        IDENTIFIER '=' value  { $$ = (struct apigen_ParserEnumItem) { .location = yyloc, .documentation = NULL, .identifier = $1, .value = $3 }; }
 ;
 
 docs: DOCCOMMENT
@@ -191,14 +192,20 @@ multiline_str:
 #include <stdio.h>
 #include <stdlib.h>
 
-int yyerror(struct apigen_ParserLType const * location, yyscan_t scanner, struct apigen_ParserState * parser_state, char const * err)
+int yyerror(struct apigen_ParserLocation const * location, yyscan_t scanner, struct apigen_ParserState * parser_state, char const * err)
 {
-    fprintf(stderr, "ERROR: %s at symbol '%s' on %s:%d:%d\n",
-        err,
-        apigen_parser_get_text(scanner),
+    APIGEN_NOT_NULL(location);
+    APIGEN_NOT_NULL(parser_state);
+    APIGEN_NOT_NULL(parser_state->diagnostics);
+    APIGEN_NOT_NULL(err);
+
+    apigen_diagnostics_emit(
+        parser_state->diagnostics,
         parser_state->file_name,
-        location->first_line + 1,
-        location->first_column + 1
+        location->first_line,
+        location->first_column,
+        apigen_error_syntax_error,
+        apigen_parser_get_text(scanner),
+        err
     );
-    exit(1);
 }

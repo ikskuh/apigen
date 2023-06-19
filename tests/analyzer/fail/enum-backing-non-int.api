@@ -1,0 +1,6 @@
+// expected: 1009, 1009
+
+type s = opaque{};
+
+type f1 = enum(f32) {a};
+type f2 = enum(s) {a};
