@@ -121,6 +121,8 @@ static struct apigen_Type const * resolve_type(struct apigen_TypePool * pool, st
                 struct apigen_ParserField const * param_iter = src_type->function_data.parameters;
                 while(param_iter != NULL) {
 
+                    // TODO: Test for duplicate parameter names here!
+
                     parameters[index] = (struct apigen_NamedValue) {
                         .documentation = param_iter->documentation,
                         .name = param_iter->identifier,
