@@ -56,7 +56,7 @@ pub fn build(b: *std.Build) void {
     lexer_gen.step.dependOn(&parser_gen.step);
 
     const exe = b.addExecutable(.{
-        .name = "apidef",
+        .name = "apigen",
         .target = target,
         .optimize = optimize,
     });

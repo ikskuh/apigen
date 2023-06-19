@@ -43,3 +43,33 @@ fn apigen_memory_arena_deinit(arena: *apigen_MemoryArena) void;
 - [ ] Field alignment
 - [ ] Pointer alignment
 - [ ] Macro/inline function support
+- [ ] Implementation stub generator
+
+## Building
+
+### Dependencies
+
+- [`zig`](https://ziglang.org/download/), at least 0.11.0-dev.3258 or later
+- [`flex`](https://github.com/westes/flex), at least version 2.6.4
+- [`bison`](https://www.gnu.org/software/bison/), at least version 3.8.2
+
+### Build Commands
+
+### Build
+
+```sh-session
+abc@ce7d9be5b94d:/workspace/projects/apigen$ zig build install
+abc@ce7d9be5b94d:/workspace/projects/apigen$ 
+```
+
+will output `zig-out/bin/apigen`
+
+### Tests
+
+```sh-session
+abc@ce7d9be5b94d:/workspace/projects/apigen$ zig build test
+abc@ce7d9be5b94d:/workspace/projects/apigen$ 
+```
+
+will run the test suite and outputs the failed tests, if any.
+
