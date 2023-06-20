@@ -79,6 +79,8 @@ void apigen_memory_arena_deinit(struct apigen_MemoryArena * arena)
 
 void * apigen_memory_arena_alloc(struct apigen_MemoryArena * arena, size_t size)
 {
+    APIGEN_NOT_NULL(arena);
+
     size_t const aligned_size = alignSizeForward(size);
 
     struct apigen_MemoryArenaChunk * chunk = arena->last_chunk;
@@ -128,6 +130,12 @@ void * apigen_memory_arena_alloc(struct apigen_MemoryArena * arena, size_t size)
 
 char *apigen_memory_arena_dupestr(struct apigen_MemoryArena *arena, char const * str)
 {
+    APIGEN_NOT_NULL(arena);
+
+    if(str == NULL) {
+        return NULL;
+    }
+
     size_t len = strlen(str);
     char * res = apigen_memory_arena_alloc(arena, len + 1);
     memcpy(res, str, len);

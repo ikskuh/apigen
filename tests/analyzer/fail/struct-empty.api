@@ -1,8 +1,7 @@
+// expected: 6001
 
-
-type st = struct {
+type bad = struct {
   a: u32,
   b: *const lol,
   a: u32,
 };
-

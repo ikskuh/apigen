@@ -58,9 +58,9 @@ struct apigen_Type const * apigen_lookup_type(struct apigen_TypePool const * poo
     if(apigen_streq(type_name, "void"))        return &apigen_type_void;
     if(apigen_streq(type_name, "anyopaque"))   return &apigen_type_anyopaque;
     if(apigen_streq(type_name, "bool"))        return &apigen_type_bool;
-    if(apigen_streq(type_name, "uchar"))       return &apigen_type_uchar;
-    if(apigen_streq(type_name, "ichar"))       return &apigen_type_ichar;
-    if(apigen_streq(type_name, "char"))        return &apigen_type_char;
+    if(apigen_streq(type_name, "c_uchar"))     return &apigen_type_uchar;
+    if(apigen_streq(type_name, "c_ichar"))     return &apigen_type_ichar;
+    if(apigen_streq(type_name, "c_char"))      return &apigen_type_char;
     if(apigen_streq(type_name, "u8"))          return &apigen_type_u8;
     if(apigen_streq(type_name, "u16"))         return &apigen_type_u16;
     if(apigen_streq(type_name, "u32"))         return &apigen_type_u32;

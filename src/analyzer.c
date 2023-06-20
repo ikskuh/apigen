@@ -338,9 +338,9 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
                     }
 
                     parameters[index] = (struct apigen_NamedValue) {
-                        .documentation = param_iter->documentation,
-                        .name = param_iter->identifier,
-                        .type = resolve_type_inner(resolver, &param_iter->type),
+                        .documentation = apigen_memory_arena_dupestr(resolver->pool->arena, param_iter->documentation),
+                        .name          = apigen_memory_arena_dupestr(resolver->pool->arena, param_iter->identifier),
+                        .type          = resolve_type_inner(resolver, &param_iter->type),
                     };
                     if(parameters[index].type == NULL) {
                         return NULL;
@@ -434,6 +434,300 @@ static enum apigen_TypeId map_unique_parser_type_id(enum apigen_ParserTypeId id)
         case apigen_parser_type_ptr_to_many_sentinelled:    APIGEN_UNREACHABLE();
         case apigen_parser_type_function:                   APIGEN_UNREACHABLE();
     }
+}
+
+static bool analyze_struct_type(struct apigen_ParserState * const state, struct apigen_TypePool * const type_pool, struct apigen_ParserDeclaration const * const decl)
+{
+    APIGEN_NOT_NULL(state);
+    APIGEN_NOT_NULL(type_pool);
+    APIGEN_NOT_NULL(decl);
+
+    bool ok = true;
+
+    size_t field_count = 0;
+    {
+        struct apigen_ParserField const * field = decl->type.union_struct_fields;
+        while(field != NULL) {
+            field_count += 1;
+            field = field->next;
+        }
+    }
+
+    struct apigen_NamedValue * const fields = apigen_memory_arena_alloc(type_pool->arena, field_count * sizeof(struct apigen_NamedValue));
+
+    if(field_count > 0)
+    {
+        size_t index = 0;
+        struct apigen_ParserField const * src_field = decl->type.union_struct_fields;
+        while(src_field != NULL) {
+            struct apigen_NamedValue * const dst_field = &fields[index];
+            *dst_field = (struct apigen_NamedValue) {
+                .documentation = apigen_memory_arena_dupestr(type_pool->arena, src_field->documentation),
+                .name          = apigen_memory_arena_dupestr(type_pool->arena, src_field->identifier),
+                .type          = resolve_type(state, type_pool, true, &src_field->type, NULL),
+            };
+
+            for(size_t i = 0; i < index; i++)
+            {
+                if(apigen_streq(dst_field->name, fields[i].name)) {
+                    emit_diagnostics(state, src_field->location, apigen_error_duplicate_field, dst_field->name);
+                    break;
+                }
+            }
+
+            if(dst_field->type == NULL)
+            {
+                ok = false;
+            }
+
+            index += 1;
+            src_field = src_field->next;
+        }
+    }
+    else
+    {
+        emit_diagnostics(state, decl->type.location, apigen_warning_struct_empty);
+    }
+
+    struct apigen_UnionOrStruct * const struct_or_union = apigen_memory_arena_alloc(type_pool->arena, sizeof(struct apigen_UnionOrStruct));
+    *struct_or_union = (struct apigen_UnionOrStruct) {
+        .field_count = field_count,
+        .fields      = fields,
+    };
+
+    decl->associated_type->extra = struct_or_union;
+
+    return ok;
+}
+
+static bool analyze_enum_type(struct apigen_ParserState * const state, struct apigen_TypePool * const type_pool, struct apigen_ParserDeclaration const * const decl)
+{
+    APIGEN_NOT_NULL(state);
+    APIGEN_NOT_NULL(type_pool);
+    APIGEN_NOT_NULL(decl);
+
+    bool ok = true;
+
+    struct ValueRange int_range = { 0, 0 };
+
+    struct apigen_Type const * underlying_type = NULL;
+    if(decl->type.enum_data.underlying_type != NULL) {
+        underlying_type = resolve_type(state, type_pool, true, decl->type.enum_data.underlying_type, NULL);
+        if(underlying_type != NULL) {
+            if(is_integer_type(*underlying_type)) {
+                int_range = get_integer_range(underlying_type->id);
+
+                if(!range_is_valid(int_range)) {
+                    emit_diagnostics(state, decl->type.enum_data.underlying_type->location, apigen_warning_enum_int_undefined, "u32");
+                }
+            }
+            else {
+                emit_diagnostics(state, decl->type.enum_data.underlying_type->location, apigen_error_enum_type_must_be_int);
+                ok = false;
+            }
+        }
+        else {
+            // Has already emit an error here
+            ok = false;
+        }
+    }
+
+    size_t items_count = 0;
+    {
+        struct apigen_ParserEnumItem const * iter = decl->type.enum_data.items;
+        while(iter != NULL) {
+            items_count += 1;
+            iter = iter->next;
+        }
+    }
+
+    if(items_count > 0)
+    {
+        struct apigen_EnumItem * const items = apigen_memory_arena_alloc(type_pool->arena, items_count * sizeof(struct apigen_EnumItem));
+        {
+            size_t index = 0;
+            struct apigen_ParserEnumItem const * iter = decl->type.enum_data.items;
+            union {
+                uint64_t uval;
+                int64_t ival;
+            } current_value = { .uval = 0 };
+
+            bool value_is_signed = (underlying_type != NULL) ? is_integer_unsigned(underlying_type->id) : false;
+
+            struct ValueRange actual_range = INIT_LIMIT_RANGE;
+            
+            while(iter != NULL) {
+
+                for(size_t i = 0; i < index; i++)
+                {
+                    if(apigen_streq(items[i].name, iter->identifier)) {
+                        emit_diagnostics(state, iter->location, apigen_error_duplicate_enum_item, iter->identifier);
+                        break;
+                    }
+                }
+
+                bool skip_range_check = false;
+                switch(iter->value.type) {
+                    case apigen_value_null: break; // null values don't change the current value
+                    
+                    case apigen_value_str:
+                        emit_diagnostics(state, iter->location, apigen_error_enum_value_illegal, iter->identifier);
+                        break;
+                    
+                    case apigen_value_sint:
+                        // fprintf(stderr, "ival=%" PRIi64 "\n", iter->value.value_sint);
+                        // NOTE: all signed ints are less than zero!
+
+                        if((underlying_type != NULL) && !value_is_signed) {
+                            char buffer[256];
+                            (void)snprintf(buffer, sizeof buffer, "%"PRId64, iter->value.value_sint);
+                            emit_diagnostics(state, iter->location, apigen_error_enum_out_of_range, buffer, iter->identifier);
+                            skip_range_check = true;
+                        }
+                        else if(value_is_signed) {
+                            current_value.ival = iter->value.value_sint;
+                        }
+                        else {
+                            value_is_signed = true;
+                            current_value.ival = iter->value.value_sint;
+                        }
+
+                        break;
+
+                    case apigen_value_uint:
+                        // fprintf(stderr, "uval=%" PRIu64 "\n", iter->value.value_uint);
+                        if(value_is_signed) {
+                            if(iter->value.value_uint > INT64_MAX) {
+                                char buffer[256];
+                                (void)snprintf(buffer, sizeof buffer, "%"PRId64, iter->value.value_uint);
+                                emit_diagnostics(state, iter->location, apigen_error_enum_out_of_range, buffer, iter->identifier);
+                                skip_range_check = true;
+                            }
+                            else {
+                                current_value.ival = (int64_t)iter->value.value_uint;
+                            }
+                        }
+                        else {
+                            
+                            current_value.uval = iter->value.value_uint;
+                        }
+                        break;
+                }
+
+                if(!skip_range_check && range_is_valid(int_range)) {
+                    if(value_is_signed) {
+                        if(!svalue_in_range(int_range, current_value.ival)) {
+                            char buffer[256];
+                            (void)snprintf(buffer, sizeof buffer, "%"PRId64, current_value.ival);
+                            emit_diagnostics(state, iter->location, apigen_error_enum_out_of_range, buffer, iter->identifier);
+                        }
+                    }
+                    else {
+                        if(!uvalue_in_range(int_range, current_value.uval)) {
+                            char buffer[256];
+                            (void)snprintf(buffer, sizeof buffer, "%"PRIu64, current_value.uval);
+                            emit_diagnostics(state, iter->location, apigen_error_enum_out_of_range, buffer, iter->identifier);
+                        }
+                    }
+                }
+
+                for(size_t i = 0; i < index; i++) 
+                {
+                    // we can safely compare uval as we're comparing for "bit pattern equality"
+                    if(items[i].uvalue == current_value.uval) { 
+                        char buffer[256];
+                        if(value_is_signed) {
+                            (void)snprintf(buffer, sizeof buffer, "%"PRId64, current_value.ival);
+                        } else {
+                            (void)snprintf(buffer, sizeof buffer, "%"PRIu64, current_value.uval);
+                        }
+                        emit_diagnostics(state, iter->location, apigen_error_duplicate_enum_value, iter->identifier, buffer, items[i].name);
+                        break;
+                    }
+                }   
+                
+                struct apigen_EnumItem * const item = &items[index];
+                if(value_is_signed) {
+                    *item = (struct apigen_EnumItem) {
+                        .documentation = apigen_memory_arena_dupestr(type_pool->arena, iter->documentation),
+                        .name          = apigen_memory_arena_dupestr(type_pool->arena, iter->identifier),
+                        .ivalue        = current_value.ival,
+                    };
+                    insert_ival_into_range(&actual_range, current_value.ival);
+                    current_value.ival += 1;
+                }
+                else {
+                    *item = (struct apigen_EnumItem) {
+                        .documentation = apigen_memory_arena_dupestr(type_pool->arena, iter->documentation),
+                        .name          = apigen_memory_arena_dupestr(type_pool->arena, iter->identifier),
+                        .uvalue        = current_value.uval,
+                    };
+                    insert_uval_into_range(&actual_range, current_value.uval);
+                    current_value.uval += 1;
+
+                }
+                iter = iter->next;
+                index += 1;
+            }
+            APIGEN_ASSERT(index == items_count);
+
+            if(underlying_type == NULL)
+            {
+                // auto-detect value type
+                if(actual_range.min < 0) {
+                    bool const fits_i8 = (actual_range.min >= INT8_MIN) && (actual_range.max <= INT8_MAX);
+                    bool const fits_i16 = (actual_range.min >= INT16_MIN) && (actual_range.max <= INT16_MAX);
+                    bool const fits_i32 = (actual_range.min >= INT32_MIN) && (actual_range.max <= INT32_MAX);
+                    
+                    underlying_type = fits_i8  ? apigen_get_builtin_type(apigen_typeid_i8)
+                                    : fits_i16 ? apigen_get_builtin_type(apigen_typeid_i16)
+                                    : fits_i32 ? apigen_get_builtin_type(apigen_typeid_i32)
+                                    :            apigen_get_builtin_type(apigen_typeid_i64);
+                }
+                else {
+                    bool const fits_u8 = (actual_range.max <= UINT8_MAX);
+                    bool const fits_u16 = (actual_range.max <= UINT16_MAX);
+                    bool const fits_u32 = (actual_range.max <= UINT32_MAX);
+                    
+                    underlying_type = fits_u8  ? apigen_get_builtin_type(apigen_typeid_u8)
+                                    : fits_u16 ? apigen_get_builtin_type(apigen_typeid_u16)
+                                    : fits_u32 ? apigen_get_builtin_type(apigen_typeid_u32)
+                                    :            apigen_get_builtin_type(apigen_typeid_u64);
+                }
+            }
+        }
+
+        APIGEN_ASSERT(underlying_type != NULL);
+
+        // {
+        //     fprintf(stderr, "type: %s\n", apigen_type_str(underlying_type->id));
+        //     bool const value_is_signed = !is_integer_unsigned(underlying_type->id);
+        //     for(size_t i = 0; i < items_count; i++)
+        //     {
+        //         if(value_is_signed) {
+        //             fprintf(stderr, "%zu: %s => %"PRIi64"\n", i, items[i].name, items[i].ivalue);
+        //         }
+        //         else {
+        //             fprintf(stderr, "%zu: %s => %"PRIu64"\n", i, items[i].name, items[i].uvalue);
+        //         }
+        //     }
+        // }
+
+        struct apigen_Enum * enum_extra = apigen_memory_arena_alloc(type_pool->arena, sizeof(struct apigen_Enum));
+        *enum_extra = (struct apigen_Enum) {
+            .underlying_type = underlying_type,
+            .item_count = items_count,
+            .items = items,
+        };
+        decl->associated_type->extra = enum_extra;
+    }
+    else 
+    {
+        emit_diagnostics(state, decl->type.location, apigen_error_enum_empty);
+        ok = false;
+    }
+
+    return ok;
 }
 
 bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Document * const out_document)
@@ -594,232 +888,18 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                         case apigen_parser_type_struct:
                         case apigen_parser_type_union:
                         {
-                            apigen_panic("implement analyzing struct/union");
+                            if(!analyze_struct_type(state, &out_document->type_pool, decl)) {
+                                ok = false;
+                            }
+                            break;
                         }
 
                         case apigen_parser_type_enum:
                         {
-                            struct ValueRange int_range = { 0, 0 };
-
-                            struct apigen_Type const * underlying_type = NULL;
-                            if(decl->type.enum_data.underlying_type != NULL) {
-                                underlying_type = resolve_type(state, &out_document->type_pool, true, decl->type.enum_data.underlying_type, NULL);
-                                if(underlying_type != NULL) {
-                                    if(is_integer_type(*underlying_type)) {
-                                        int_range = get_integer_range(underlying_type->id);
-
-                                        if(!range_is_valid(int_range)) {
-                                            emit_diagnostics(state, decl->type.enum_data.underlying_type->location, apigen_warning_enum_int_undefined, "u32");
-                                        }
-                                    }
-                                    else {
-                                        emit_diagnostics(state, decl->type.enum_data.underlying_type->location, apigen_error_enum_type_must_be_int);
-                                        ok = false;
-                                    }
-                                }
-                                else {
-                                    // Has already emit an error here
-                                    ok = false;
-                                }
-                            }
-
-                            size_t items_count = 0;
-                            {
-                                struct apigen_ParserEnumItem const * iter = decl->type.enum_data.items;
-                                while(iter != NULL) {
-                                    items_count += 1;
-                                    iter = iter->next;
-                                }
-                            }
-
-                            if(items_count > 0)
-                            {
-                                struct apigen_EnumItem * const items = apigen_memory_arena_alloc(out_document->type_pool.arena, items_count * sizeof(struct apigen_EnumItem));
-                                {
-                                    size_t index = 0;
-                                    struct apigen_ParserEnumItem const * iter = decl->type.enum_data.items;
-                                    union {
-                                        uint64_t uval;
-                                        int64_t ival;
-                                    } current_value = { .uval = 0 };
-
-                                    bool value_is_signed = (underlying_type != NULL) ? is_integer_unsigned(underlying_type->id) : false;
-
-                                    struct ValueRange actual_range = INIT_LIMIT_RANGE;
-                                    
-                                    while(iter != NULL) {
-
-                                        for(size_t i = 0; i < index; i++)
-                                        {
-                                            if(apigen_streq(items[i].name, iter->identifier)) {
-                                                emit_diagnostics(state, iter->location, apigen_error_duplicate_enum_item, iter->identifier);
-                                                break;
-                                            }
-                                        }
-
-                                        bool skip_range_check = false;
-                                        switch(iter->value.type) {
-                                            case apigen_value_null: break; // null values don't change the current value
-                                            
-                                            case apigen_value_str:
-                                                emit_diagnostics(state, iter->location, apigen_error_enum_value_illegal, iter->identifier);
-                                                break;
-                                            
-                                            case apigen_value_sint:
-                                                // fprintf(stderr, "ival=%" PRIi64 "\n", iter->value.value_sint);
-                                                // NOTE: all signed ints are less than zero!
-
-                                                if((underlying_type != NULL) && !value_is_signed) {
-                                                    char buffer[256];
-                                                    (void)snprintf(buffer, sizeof buffer, "%"PRId64, iter->value.value_sint);
-                                                    emit_diagnostics(state, iter->location, apigen_error_enum_out_of_range, buffer, iter->identifier);
-                                                    skip_range_check = true;
-                                                }
-                                                else if(value_is_signed) {
-                                                    current_value.ival = iter->value.value_sint;
-                                                }
-                                                else {
-                                                    value_is_signed = true;
-                                                    current_value.ival = iter->value.value_sint;
-                                                }
-
-                                                break;
-
-                                            case apigen_value_uint:
-                                                // fprintf(stderr, "uval=%" PRIu64 "\n", iter->value.value_uint);
-                                                if(value_is_signed) {
-                                                    if(iter->value.value_uint > INT64_MAX) {
-                                                        char buffer[256];
-                                                        (void)snprintf(buffer, sizeof buffer, "%"PRId64, iter->value.value_uint);
-                                                        emit_diagnostics(state, iter->location, apigen_error_enum_out_of_range, buffer, iter->identifier);
-                                                        skip_range_check = true;
-                                                    }
-                                                    else {
-                                                        current_value.ival = (int64_t)iter->value.value_uint;
-                                                    }
-                                                }
-                                                else {
-                                                    
-                                                    current_value.uval = iter->value.value_uint;
-                                                }
-                                                break;
-                                        }
-
-                                        if(!skip_range_check && range_is_valid(int_range)) {
-                                            if(value_is_signed) {
-                                                if(!svalue_in_range(int_range, current_value.ival)) {
-                                                    char buffer[256];
-                                                    (void)snprintf(buffer, sizeof buffer, "%"PRId64, current_value.ival);
-                                                    emit_diagnostics(state, iter->location, apigen_error_enum_out_of_range, buffer, iter->identifier);
-                                                }
-                                            }
-                                            else {
-                                                if(!uvalue_in_range(int_range, current_value.uval)) {
-                                                    char buffer[256];
-                                                    (void)snprintf(buffer, sizeof buffer, "%"PRIu64, current_value.uval);
-                                                    emit_diagnostics(state, iter->location, apigen_error_enum_out_of_range, buffer, iter->identifier);
-                                                }
-                                            }
-                                        }
-
-                                        for(size_t i = 0; i < index; i++) 
-                                        {
-                                            // we can safely compare uval as we're comparing for "bit pattern equality"
-                                            if(items[i].uvalue == current_value.uval) { 
-                                                char buffer[256];
-                                                if(value_is_signed) {
-                                                    (void)snprintf(buffer, sizeof buffer, "%"PRId64, current_value.ival);
-                                                } else {
-                                                    (void)snprintf(buffer, sizeof buffer, "%"PRIu64, current_value.uval);
-                                                }
-                                                emit_diagnostics(state, iter->location, apigen_error_duplicate_enum_value, iter->identifier, buffer, items[i].name);
-                                                break;
-                                            }
-                                        }   
-                                        
-                                        struct apigen_EnumItem * const item = &items[index];
-                                        if(value_is_signed) {
-                                            *item = (struct apigen_EnumItem) {
-                                                .documentation = iter->documentation,
-                                                .name          = iter->identifier,
-                                                .ivalue        = current_value.ival,
-                                            };
-                                            insert_ival_into_range(&actual_range, current_value.ival);
-                                            current_value.ival += 1;
-                                        }
-                                        else {
-                                            *item = (struct apigen_EnumItem) {
-                                                .documentation = iter->documentation,
-                                                .name          = iter->identifier,
-                                                .uvalue        = current_value.uval,
-                                            };
-                                            insert_uval_into_range(&actual_range, current_value.uval);
-                                            current_value.uval += 1;
-
-                                        }
-                                        iter = iter->next;
-                                        index += 1;
-                                    }
-                                    APIGEN_ASSERT(index == items_count);
-
-                                    if(underlying_type == NULL)
-                                    {
-                                        // auto-detect value type
-                                        if(actual_range.min < 0) {
-                                            bool const fits_i8 = (actual_range.min >= INT8_MIN) && (actual_range.max <= INT8_MAX);
-                                            bool const fits_i16 = (actual_range.min >= INT16_MIN) && (actual_range.max <= INT16_MAX);
-                                            bool const fits_i32 = (actual_range.min >= INT32_MIN) && (actual_range.max <= INT32_MAX);
-                                            
-                                            underlying_type = fits_i8  ? apigen_get_builtin_type(apigen_typeid_i8)
-                                                            : fits_i16 ? apigen_get_builtin_type(apigen_typeid_i16)
-                                                            : fits_i32 ? apigen_get_builtin_type(apigen_typeid_i32)
-                                                            :            apigen_get_builtin_type(apigen_typeid_i64);
-                                        }
-                                        else {
-                                            bool const fits_u8 = (actual_range.max <= UINT8_MAX);
-                                            bool const fits_u16 = (actual_range.max <= UINT16_MAX);
-                                            bool const fits_u32 = (actual_range.max <= UINT32_MAX);
-                                            
-                                            underlying_type = fits_u8  ? apigen_get_builtin_type(apigen_typeid_u8)
-                                                            : fits_u16 ? apigen_get_builtin_type(apigen_typeid_u16)
-                                                            : fits_u32 ? apigen_get_builtin_type(apigen_typeid_u32)
-                                                            :            apigen_get_builtin_type(apigen_typeid_u64);
-                                        }
-                                    }
-                                }
-
-                                APIGEN_ASSERT(underlying_type != NULL);
-
-                                // {
-                                //     fprintf(stderr, "type: %s\n", apigen_type_str(underlying_type->id));
-                                //     bool const value_is_signed = !is_integer_unsigned(underlying_type->id);
-                                //     for(size_t i = 0; i < items_count; i++)
-                                //     {
-                                //         if(value_is_signed) {
-                                //             fprintf(stderr, "%zu: %s => %"PRIi64"\n", i, items[i].name, items[i].ivalue);
-                                //         }
-                                //         else {
-                                //             fprintf(stderr, "%zu: %s => %"PRIu64"\n", i, items[i].name, items[i].uvalue);
-                                //         }
-                                //     }
-                                // }
-
-                                struct apigen_Enum * enum_extra = apigen_memory_arena_alloc(out_document->type_pool.arena, sizeof(struct apigen_Enum));
-                                *enum_extra = (struct apigen_Enum) {
-                                    .underlying_type = underlying_type,
-                                    .item_count = items_count,
-                                    .items = items,
-                                };
-                                decl->associated_type->extra = enum_extra;
-                            }
-                            else 
-                            {
-                                emit_diagnostics(state, decl->type.location, apigen_error_enum_empty);
+                            if(!analyze_enum_type(state, &out_document->type_pool, decl)) {
                                 ok = false;
                             }
-                            
-                            // struct apigen_ParserEnumItem * items;
-                            // apigen_panic("implement analyzing enums");
+                            break;
                         }
 
                         case apigen_parser_type_opaque:

@@ -1,0 +1,3 @@
+// expected: 1001
+
+type bad = struct {};

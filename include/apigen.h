@@ -300,7 +300,7 @@ bool apigen_analyze(struct apigen_ParserState *state, struct apigen_Document * o
 // Expects _Mac(Symbol, ID, Format String)
 #define APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(_Mac)          \
     _Mac(apigen_error_array_size_not_uint,   1000, "Array size is not an unsigend integer")    \
-    _Mac(apigen_error_duplicate_field,       1001, "")    \
+    _Mac(apigen_error_duplicate_field,       1001, "Struct or enumeration already contains a member with the name '%s'")    \
     _Mac(apigen_error_duplicate_parameter,   1002, "A parameter with the name '%s' already exists")    \
     _Mac(apigen_error_duplicate_enum_item,   1003, "An enumeration member with the name 's' already exists")    \
     _Mac(apigen_error_duplicate_enum_value,  1004, "Enumeration member '%s' has value %s, which is already assigned to enumeration member '%s'")    \
@@ -313,7 +313,8 @@ bool apigen_analyze(struct apigen_ParserState *state, struct apigen_Document * o
     _Mac(apigen_error_enum_type_must_be_int, 1011, "Enum backing type must be an integer") \
     _Mac(apigen_error_enum_empty,            1012, "Enums must contain at least one item") \
     \
-    _Mac(apigen_warning_enum_int_undefined,  6000, "Chosen enum backing type %s has no well-defined range. Generated code may not be portable")
+    _Mac(apigen_warning_enum_int_undefined,  6000, "Chosen enum backing type %s has no well-defined range. Generated code may not be portable") \
+    _Mac(apigen_warning_struct_empty,        6001, "An empty struct or union can be defined, but is not guaranteed to be portable between platforms or compilers.")
 
 enum apigen_diagnostic_code
 {

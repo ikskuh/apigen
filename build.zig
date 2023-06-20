@@ -8,6 +8,7 @@ const strict_cflags = lax_cflags ++ [_][]const u8{
     "-Wextra",
     "-Wunused-parameter",
     "-Wreturn-type",
+    "-Wimplicit-fallthrough",
 };
 
 pub fn build(b: *std.Build) void {
@@ -164,4 +165,6 @@ const analyzer_test_files = [_][]const u8{
     "tests/analyzer/ok/early-ref-unique.api",
     "tests/analyzer/ok/func.api",
     "tests/analyzer/ok/enums.api",
+    "tests/analyzer/ok/structs.api",
+    "tests/analyzer/ok/unions.api",
 } ++ general_examples;
