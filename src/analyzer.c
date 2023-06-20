@@ -657,6 +657,7 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                                             }
                                         }
 
+                                        bool skip_range_check = false;
                                         switch(iter->value.type) {
                                             case apigen_value_null: break; // null values don't change the current value
                                             
@@ -665,17 +666,46 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                                                 break;
                                             
                                             case apigen_value_sint:
+                                                // fprintf(stderr, "ival=%" PRIi64 "\n", iter->value.value_sint);
+                                                // NOTE: all signed ints are less than zero!
 
-                                                
+                                                if((underlying_type != NULL) && !value_is_signed) {
+                                                    char buffer[256];
+                                                    (void)snprintf(buffer, sizeof buffer, "%"PRId64, iter->value.value_sint);
+                                                    emit_diagnostics(state, iter->location, apigen_error_enum_out_of_range, buffer, iter->identifier);
+                                                    skip_range_check = true;
+                                                }
+                                                else if(value_is_signed) {
+                                                    current_value.ival = iter->value.value_sint;
+                                                }
+                                                else {
+                                                    value_is_signed = true;
+                                                    current_value.ival = iter->value.value_sint;
+                                                }
 
                                                 break;
 
                                             case apigen_value_uint:
-
+                                                // fprintf(stderr, "uval=%" PRIu64 "\n", iter->value.value_uint);
+                                                if(value_is_signed) {
+                                                    if(iter->value.value_uint > INT64_MAX) {
+                                                        char buffer[256];
+                                                        (void)snprintf(buffer, sizeof buffer, "%"PRId64, iter->value.value_uint);
+                                                        emit_diagnostics(state, iter->location, apigen_error_enum_out_of_range, buffer, iter->identifier);
+                                                        skip_range_check = true;
+                                                    }
+                                                    else {
+                                                        current_value.ival = (int64_t)iter->value.value_uint;
+                                                    }
+                                                }
+                                                else {
+                                                    
+                                                    current_value.uval = iter->value.value_uint;
+                                                }
                                                 break;
                                         }
 
-                                        if(range_is_valid(int_range)) {
+                                        if(!skip_range_check && range_is_valid(int_range)) {
                                             if(value_is_signed) {
                                                 if(!svalue_in_range(int_range, current_value.ival)) {
                                                     char buffer[256];
@@ -691,6 +721,21 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                                                 }
                                             }
                                         }
+
+                                        for(size_t i = 0; i < index; i++) 
+                                        {
+                                            // we can safely compare uval as we're comparing for "bit pattern equality"
+                                            if(items[i].uvalue == current_value.uval) { 
+                                                char buffer[256];
+                                                if(value_is_signed) {
+                                                    (void)snprintf(buffer, sizeof buffer, "%"PRId64, current_value.ival);
+                                                } else {
+                                                    (void)snprintf(buffer, sizeof buffer, "%"PRIu64, current_value.uval);
+                                                }
+                                                emit_diagnostics(state, iter->location, apigen_error_duplicate_enum_value, iter->identifier, buffer, items[i].name);
+                                                break;
+                                            }
+                                        }   
                                         
                                         struct apigen_EnumItem * const item = &items[index];
                                         if(value_is_signed) {
@@ -745,18 +790,19 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
 
                                 APIGEN_ASSERT(underlying_type != NULL);
 
-                                {
-                                    bool const value_is_signed = is_integer_unsigned(underlying_type->id);
-                                    for(size_t i = 0; i < items_count; i++)
-                                    {
-                                        if(value_is_signed) {
-                                            fprintf(stderr, "%zu: %s => %"PRIi64"\n", i, items[i].name, items[i].ivalue);
-                                        }
-                                        else {
-                                            fprintf(stderr, "%zu: %s => %"PRIu64"\n", i, items[i].name, items[i].uvalue);
-                                        }
-                                    }
-                                }
+                                // {
+                                //     fprintf(stderr, "type: %s\n", apigen_type_str(underlying_type->id));
+                                //     bool const value_is_signed = !is_integer_unsigned(underlying_type->id);
+                                //     for(size_t i = 0; i < items_count; i++)
+                                //     {
+                                //         if(value_is_signed) {
+                                //             fprintf(stderr, "%zu: %s => %"PRIi64"\n", i, items[i].name, items[i].ivalue);
+                                //         }
+                                //         else {
+                                //             fprintf(stderr, "%zu: %s => %"PRIu64"\n", i, items[i].name, items[i].uvalue);
+                                //         }
+                                //     }
+                                // }
 
                                 struct apigen_Enum * enum_extra = apigen_memory_arena_alloc(out_document->type_pool.arena, sizeof(struct apigen_Enum));
                                 *enum_extra = (struct apigen_Enum) {

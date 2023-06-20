@@ -1,0 +1,5 @@
+// expected: 1005
+
+type bad = enum(u8) {
+  a = -1,
+};

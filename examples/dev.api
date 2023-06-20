@@ -1,8 +1,0 @@
-
-
-
-
-type e2 = enum{a}; 
-type e3 = enum{a,c}; 
-type e4 = enum{a,c,d}; 
-

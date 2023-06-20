@@ -1,0 +1,8 @@
+// expected: 1004
+
+type bad = enum {
+  a = 1,
+  b = 2,
+  c = 3,
+  d = 1,
+};

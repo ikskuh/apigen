@@ -1,0 +1,5 @@
+// expected: 1006
+
+type bad = enum {
+  a = "hello",
+};

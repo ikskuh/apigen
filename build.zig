@@ -163,4 +163,5 @@ const analyzer_test_files = [_][]const u8{
     "tests/analyzer/ok/arrays.api",
     "tests/analyzer/ok/early-ref-unique.api",
     "tests/analyzer/ok/func.api",
+    "tests/analyzer/ok/enums.api",
 } ++ general_examples;

@@ -1,0 +1,30 @@
+type e2 = enum{a}; 
+type e3 = enum{a,c}; 
+type e4 = enum{a,c,d}; 
+
+type e5 = enum(u32) { a, b, c };
+type e6 = enum(u32) {
+  a = 10,
+  b = 20,
+  c = 30, 
+};
+
+type e7 = enum(u32) {
+  a = 10,
+  b,
+  c, 
+  d = 15,
+  e = 16,
+};
+
+type e8 = enum {
+  a = 100,
+  b = 200,
+  c = 300,
+};
+
+type e9 = enum {
+  a = -100,
+  b = -200,
+  c = -300,
+};

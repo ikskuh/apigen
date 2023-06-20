@@ -54,12 +54,12 @@ ident   [A-Za-z_][A-Za-z0-9_]*
 atident @\"[^\"]+\"
 
 dec_uint [0-9_]+
-hex_uint 0x[0-9_]+
-bin_uint 0b[0-9_]+
+hex_uint 0x[0-9a-fA-F_]+
+bin_uint 0b[01_]+
 
 dec_sint -[0-9_]+
-hex_sint -0x[0-9_]+
-bin_sint -0b[0-9_]+
+hex_sint -0x[0-9a-fA-F_]+
+bin_sint -0b[01_]+
 
 string_lit  \"([^\"\\\n]|\\.)*\"
 
@@ -99,14 +99,13 @@ opaque          { return KW_OPAQUE; }
 ":"             { return yytext[0]; }
 "?"             { return yytext[0]; }
 
-{hex_uint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
-{bin_uint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
-{dec_uint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_uint, .value_uint = 0 }; return INTEGER; }
-{hex_sint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
-{bin_sint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
-{dec_sint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_sint, .value_sint = 0 }; return INTEGER; }
+{hex_uint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_uint, .value_uint = apigen_parse_uint(yytext+2, 16) }; return INTEGER; }
+{bin_uint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_uint, .value_uint = apigen_parse_uint(yytext+2,  2) }; return INTEGER; }
+{dec_uint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_uint, .value_uint = apigen_parse_uint(yytext+0, 10) }; return INTEGER; }
+{hex_sint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_sint, .value_sint = apigen_parse_sint(yytext+3, 16) }; return INTEGER; }
+{bin_sint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_sint, .value_sint = apigen_parse_sint(yytext+3,  2) }; return INTEGER; }
+{dec_sint}      { yylval->value = (struct apigen_Value) { .type = apigen_value_sint, .value_sint = apigen_parse_sint(yytext+1, 10) }; return INTEGER; }
 null            { yylval->value = (struct apigen_Value) { .type = apigen_value_null };                  return NULLVAL; }
-
 
 {ident}         { yylval->identifier = apigen_memory_arena_dupestr(parser_state->ast_arena, yytext); return IDENTIFIER; }
 

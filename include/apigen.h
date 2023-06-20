@@ -65,6 +65,9 @@ struct apigen_Value
     };
 };
 
+uint64_t apigen_parse_uint(char const * str, uint8_t base); ///< parses a positive integer, no sign contained in `str`
+int64_t  apigen_parse_sint(char const * str, uint8_t base); ///< parses a negative integer, no sign contained in `str`
+
 bool apigen_value_eql(struct apigen_Value const * val1, struct apigen_Value const * val2);
 
 enum apigen_TypeId {
@@ -300,7 +303,7 @@ bool apigen_analyze(struct apigen_ParserState *state, struct apigen_Document * o
     _Mac(apigen_error_duplicate_field,       1001, "")    \
     _Mac(apigen_error_duplicate_parameter,   1002, "A parameter with the name '%s' already exists")    \
     _Mac(apigen_error_duplicate_enum_item,   1003, "An enumeration member with the name 's' already exists")    \
-    _Mac(apigen_error_duplicate_enum_value,  1004, "Enumeration value %s is already assigned to enumeration member '%s'")    \
+    _Mac(apigen_error_duplicate_enum_value,  1004, "Enumeration member '%s' has value %s, which is already assigned to enumeration member '%s'")    \
     _Mac(apigen_error_enum_out_of_range,     1005, "Value %s is out of range for enumeration member '%s'")    \
     _Mac(apigen_error_enum_value_illegal,    1006, "Enumeration member '%s' has a non-integer value")    \
     _Mac(apigen_error_duplicate_symbol,      1007, "The symbol '%s' is already declared") \
