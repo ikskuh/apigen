@@ -89,6 +89,21 @@ static bool is_integer_type(struct apigen_Type type)
     }
 }
 
+
+static bool is_stringly_type(struct apigen_Type type)
+{
+    switch(type.id)
+    {
+        case apigen_typeid_const_ptr_to_many:
+        case apigen_typeid_const_ptr_to_sentinelled_many:
+        case apigen_typeid_nullable_const_ptr_to_many:
+        case apigen_typeid_nullable_const_ptr_to_sentinelled_many:
+            return true;
+        default: 
+            return false;
+    }
+}
+
 struct ValueRange { int64_t min; uint64_t max; };
 
 static bool range_is_valid(struct ValueRange range)
@@ -1153,9 +1168,39 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                 }
 
                 if(global->type != NULL) {
-                    // TODO: Check viability?
+                    if(is_integer_type(*global->type)) {
+                        struct ValueRange const range = get_integer_range(global->type->id);
+                        if(range_is_valid(range)) {
+                            switch(global->value.type) {
+                                case apigen_value_sint:
+                                    if(!svalue_in_range(range, global->value.value_sint)) {
+                                        emit_diagnostics(state, decl->location, apigen_error_constexpr_out_of_range, global->name);
+                                    }
+                                    break;
 
-                    
+                                case apigen_value_uint:
+                                    if(!uvalue_in_range(range, global->value.value_uint)) {
+                                        emit_diagnostics(state, decl->location, apigen_error_constexpr_out_of_range, global->name);
+                                    }
+                                    break;
+
+                                default:
+                                    emit_diagnostics(state, decl->location, apigen_error_constexpr_type_mismatch, global->name);
+                                    break;
+                            }
+                        }
+                        else {
+                            emit_diagnostics(state, decl->location, apigen_warning_constexpr_unchecked, global->name);
+                        }
+                    }
+                    else if(is_stringly_type(*global->type)) {
+                        if(global->value.type != apigen_value_str) {
+                            emit_diagnostics(state, decl->location, apigen_error_constexpr_type_mismatch, global->name);
+                        }
+                    }
+                    else {
+                        emit_diagnostics(state, decl->location, apigen_error_constexpr_illegal_type, global->name);
+                    }   
 
                 } else {
                     ok = false;

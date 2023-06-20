@@ -1,16 +1,43 @@
 
+// legal types for strings:
+// u8, c_char, c_uchar, c_ichar
+
 // check that pointer to many is accepted
-constexpr expr1: [*]const u8 = "short";
-constexpr expr2: [*]const u8 = "very long text";
+constexpr expr_0: [*]const u8 = "short";
+constexpr expr_1: [*]const c_char = "short";
+constexpr expr_2: [*]const c_uchar = "short";
+constexpr expr_3: [*]const c_ichar = "short";
+constexpr expr_4: [*]const u8 = "very long text";
+constexpr expr_5: [*]const c_char = "very long text";
+constexpr expr_6: [*]const c_uchar = "very long text";
+constexpr expr_7: [*]const c_ichar = "very long text";
 
 // check that pointer with sentinelled is accepted
-constexpr expr3: [*:0]const u8 = "short";
-constexpr expr4: [*:0]const u8 = "very long text";
+constexpr expr_8: [*:0]const u8 = "short";
+constexpr expr_9: [*:0]const c_char = "short";
+constexpr expr_10: [*:0]const c_uchar = "short";
+constexpr expr_11: [*:0]const c_ichar = "short";
+constexpr expr_12: [*:0]const u8 = "very long text";
+constexpr expr_13: [*:0]const c_char = "very long text";
+constexpr expr_14: [*:0]const c_uchar = "very long text";
+constexpr expr_15: [*:0]const c_ichar = "very long text";
 
 // check that pointer to array is accepted
-constexpr expr5: *const [5]u8 = "short";
-constexpr expr6: *const [14]u8 = "very long text";
+constexpr expr_16: *const [5]u8 = "short";
+constexpr expr_17: *const [5]c_char = "short";
+constexpr expr_18: *const [5]c_uchar = "short";
+constexpr expr_19: *const [5]c_ichar = "short";
+constexpr expr_20: *const [14]u8 = "very long text";
+constexpr expr_21: *const [14]c_char = "very long text";
+constexpr expr_22: *const [14]c_uchar = "very long text";
+constexpr expr_23: *const [14]c_ichar = "very long text";
 
-// check that pointer to sentinelled array is accepted
-constexpr expr7: *const [5:0]u8 = "short";
-constexpr expr8: *const [14:0]u8 = "very long text";
+// check that array is accepted
+constexpr expr_24: [5]u8 = "short";
+constexpr expr_25: [5]c_char = "short";
+constexpr expr_26: [5]c_uchar = "short";
+constexpr expr_27: [5]c_ichar = "short";
+constexpr expr_28: [14]u8 = "very long text";
+constexpr expr_29: [14]c_char = "very long text";
+constexpr expr_30: [14]c_uchar = "very long text";
+constexpr expr_31: [14]c_ichar = "very long text";

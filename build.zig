@@ -197,4 +197,5 @@ const analyzer_test_files = [_][]const u8{
     "tests/analyzer/fail/duplicate-symbol-two-trivial.api",
     "tests/analyzer/fail/nested-struct-bad.api",
     "tests/analyzer/fail/union-empty.api",
+    "tests/analyzer/fail/constexpr-type-unsupported.api",
 } ++ general_examples;

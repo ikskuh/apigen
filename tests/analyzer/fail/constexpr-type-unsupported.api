@@ -1,0 +1,3 @@
+// expected: 1015
+
+constexpr val1: anyopaque = "";

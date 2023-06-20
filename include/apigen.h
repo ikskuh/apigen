@@ -322,10 +322,12 @@ bool apigen_analyze(struct apigen_ParserState *state, struct apigen_Document * o
     _Mac(apigen_error_enum_empty,              1012, "Enums must contain at least one item") \
     _Mac(apigen_error_constexpr_type_mismatch, 1013, "The value assigned to constant '%s' does not match its type") \
     _Mac(apigen_error_constexpr_out_of_range,  1014, "The value assigned to constant '%s' is out of range") \
+    _Mac(apigen_error_constexpr_illegal_type,  1015, "The constant '%s' is declared with an unsupported type") \
     _Mac(apigen_error_internal,                5999, "Internal compiler error") \
     \
     _Mac(apigen_warning_enum_int_undefined,    6000, "Chosen enum backing type %s has no well-defined range. Generated code may not be portable") \
-    _Mac(apigen_warning_struct_empty,          6001, "An empty struct or union can be defined, but is not guaranteed to be portable between platforms or compilers.")
+    _Mac(apigen_warning_struct_empty,          6001, "An empty struct or union can be defined, but is not guaranteed to be portable between platforms or compilers") \
+    _Mac(apigen_warning_constexpr_unchecked,   6002, "Constant '%s' could not be checked as it uses a platform-specified type. This constant might not be portable")
 
 enum apigen_DiagnosticCode
 {
