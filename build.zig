@@ -9,6 +9,7 @@ const strict_cflags = lax_cflags ++ [_][]const u8{
     "-Wunused-parameter",
     "-Wreturn-type",
     "-Wimplicit-fallthrough",
+    "-Wmissing-prototypes",
 };
 
 pub fn build(b: *std.Build) void {
@@ -91,7 +92,7 @@ pub fn build(b: *std.Build) void {
     {
         for (parser_test_files) |test_file| {
             const run = b.addRunArtifact(exe);
-            run.addArg("--parser-test");
+            run.addArg("--test-mode=parser");
             run.addFileSourceArg(.{ .path = test_file });
             run.addCheck(.{ .expect_term = .{ .Exited = 0 } });
             run.stdin = "";
@@ -100,7 +101,7 @@ pub fn build(b: *std.Build) void {
 
         for (analyzer_test_files) |test_file| {
             const run = b.addRunArtifact(exe);
-            run.addArg("--analyzer-test");
+            run.addArg("--test-mode=analyzer");
             run.addFileSourceArg(.{ .path = test_file });
             run.addCheck(.{ .expect_term = .{ .Exited = 0 } });
             run.stdin = "";
@@ -156,6 +157,7 @@ const parser_test_files = [_][]const u8{
 } ++ general_examples;
 
 const analyzer_test_files = [_][]const u8{
+    // good examples
     "tests/analyzer/ok/builtin.api",
     "tests/analyzer/ok/forward-ref.api",
     "tests/analyzer/ok/backward-ref.api",
@@ -167,4 +169,24 @@ const analyzer_test_files = [_][]const u8{
     "tests/analyzer/ok/enums.api",
     "tests/analyzer/ok/structs.api",
     "tests/analyzer/ok/unions.api",
+
+    // bad examples
+    "tests/analyzer/fail/duplicate-symbol-uniq-triv.api",
+    "tests/analyzer/fail/duplicate-symbol-triv-uniq.api",
+    "tests/analyzer/fail/enum-out-of-range-unsigned.api",
+    "tests/analyzer/fail/enum-empty-backing.api",
+    "tests/analyzer/fail/enum-duplicate-value.api",
+    "tests/analyzer/fail/enum-out-of-range-signed.api",
+    "tests/analyzer/fail/duplicate-symbol-two-unique.api",
+    "tests/analyzer/fail/enum-duplicate-item.api",
+    "tests/analyzer/fail/struct-invalid-field-type.api",
+    "tests/analyzer/fail/struct-empty.api",
+    "tests/analyzer/fail/duplicate-parameter.api",
+    "tests/analyzer/fail/struct-duplicate-field.api",
+    "tests/analyzer/fail/enum-str-item.api",
+    "tests/analyzer/fail/enum-backing-non-int.api",
+    "tests/analyzer/fail/enum-empty.api",
+    "tests/analyzer/fail/enum-backing-unspec-int.api",
+    "tests/analyzer/fail/duplicate-symbol-two-trivial.api",
+    "tests/analyzer/fail/union-empty.api",
 } ++ general_examples;

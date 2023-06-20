@@ -23,6 +23,17 @@ bool apigen_streq(char const * str1, char const * str2)
     return (0 == strcmp(str1, str2));
 }
 
+bool apigen_starts_with(char const * str1, char const * str2)
+{
+    APIGEN_NOT_NULL(str1);
+    APIGEN_NOT_NULL(str2);
+    size_t const str1_len = strlen(str1);
+    size_t const str2_len = strlen(str2);
+    if(str1_len < str2_len) {
+        return false;
+    }
+    return (memcmp(str1, str2, str2_len) == 0);
+}
 
 uint64_t apigen_parse_uint(char const * str, uint8_t base)
 {

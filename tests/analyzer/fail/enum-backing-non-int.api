@@ -1,4 +1,4 @@
-// expected: 1009, 1009
+// expected: 1011, 1011
 
 type s = opaque{};
 

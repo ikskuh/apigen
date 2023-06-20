@@ -10,7 +10,7 @@
 static void emit_diagnostics(
     struct apigen_ParserState * const parser,
     struct apigen_ParserLocation location,
-    enum apigen_diagnostic_code code,
+    enum apigen_DiagnosticCode code,
     ...)
 {
     va_list list;
@@ -311,9 +311,6 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
 
         case apigen_parser_type_function: {
             struct apigen_Type const * const return_type = resolve_type_inner(resolver, src_type->function_data.return_type);
-            if(return_type == NULL) {
-                return NULL;
-            }
 
             size_t parameter_count = 0;
             {
@@ -326,6 +323,8 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
 
             struct apigen_NamedValue * const parameters = apigen_memory_arena_alloc(resolver->pool->arena, parameter_count * sizeof(struct apigen_Type));
             {
+                bool duplicate_param = false;
+
                 size_t index = 0;
                 struct apigen_ParserField const * param_iter = src_type->function_data.parameters;
                 while(param_iter != NULL) {
@@ -333,7 +332,8 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
                     for(size_t i = 0; i < index; i++) {
                         if(apigen_streq(parameters[i].name, param_iter->identifier)) {
                             emit_diagnostics(resolver->parser, param_iter->location, apigen_error_duplicate_parameter, param_iter->identifier);
-                            exit_type_resolution(resolver);
+                            duplicate_param = true;
+                            break;
                         }
                     }
 
@@ -350,6 +350,10 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
                     param_iter = param_iter->next;
                 }
                 APIGEN_ASSERT(parameter_count == index);
+
+                if(duplicate_param) {   
+                    exit_type_resolution(resolver);
+                }
             }
 
             struct apigen_Function const extra_data = (struct apigen_Function) {
@@ -405,13 +409,11 @@ static struct apigen_Type const * resolve_type(
     }
     else if(response == RESOLVE_FAILED_GENERIC)
     {
-        // TODO: Handle arbitrary error
         if(non_resolve_error) *non_resolve_error = true;
         return NULL;
     }
     else if(response == RESOLVE_MISSING_SYMBOL)
     {
-        // TODO: Handle resolution error
         return NULL;
     }
     else 
@@ -524,6 +526,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
             else {
                 emit_diagnostics(state, decl->type.enum_data.underlying_type->location, apigen_error_enum_type_must_be_int);
                 ok = false;
+                underlying_type = NULL; // just go auto-deduction route here, so we can check more errors
             }
         }
         else {

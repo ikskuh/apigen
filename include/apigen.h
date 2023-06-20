@@ -32,6 +32,7 @@ struct apigen_Stream
 
 void APIGEN_NORETURN apigen_panic(char const *msg);
 
+bool apigen_starts_with(char const * str1, char const * str2);
 bool apigen_streq(char const * str1, char const * str2);
 
 extern struct apigen_Stream const apigen_io_stdout;
@@ -316,14 +317,14 @@ bool apigen_analyze(struct apigen_ParserState *state, struct apigen_Document * o
     _Mac(apigen_warning_enum_int_undefined,  6000, "Chosen enum backing type %s has no well-defined range. Generated code may not be portable") \
     _Mac(apigen_warning_struct_empty,        6001, "An empty struct or union can be defined, but is not guaranteed to be portable between platforms or compilers.")
 
-enum apigen_diagnostic_code
+enum apigen_DiagnosticCode
 {
 #define APIGEN_TEMP_MACRO(_Symbol, _Id, _Format) _Symbol = _Id,
 APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(APIGEN_TEMP_MACRO)
 #undef  APIGEN_TEMP_MACRO
 };
 
-struct apigen_diagnostic_item;
+struct apigen_DiagnosticItem;
 
 #define APIGEN_DIAGNOSTIC_FLAG_ERROR (1U<<0)
 #define APIGEN_DIAGNOSTIC_FLAG_WARN  (1U<<1)
@@ -333,19 +334,22 @@ struct apigen_Diagnostics
 {
     struct apigen_MemoryArena * arena;
     size_t item_count;
-    struct apigen_diagnostic_item * items;
+    struct apigen_DiagnosticItem * items;
     uint32_t flags;
 };
 
 void apigen_diagnostics_init(struct apigen_Diagnostics * diags, struct apigen_MemoryArena * arena);
 void apigen_diagnostics_deinit(struct apigen_Diagnostics * diags);
 
+bool apigen_diagnostics_remove_one(struct apigen_Diagnostics * diags, enum apigen_DiagnosticCode code);
+bool apigen_diagnostics_has_any(struct apigen_Diagnostics const * diags);
+
 void apigen_diagnostics_emit(
     struct apigen_Diagnostics * diags,
     char const * file_name,
     uint32_t line_number,
     uint32_t column_number,
-    enum apigen_diagnostic_code code, 
+    enum apigen_DiagnosticCode code,
     ...);
 
 void apigen_diagnostics_vemit(
@@ -353,7 +357,7 @@ void apigen_diagnostics_vemit(
     char const * file_name,
     uint32_t line_number,
     uint32_t column_number,
-    enum apigen_diagnostic_code code, 
+    enum apigen_DiagnosticCode code, 
     va_list list);
 
 

@@ -1,8 +1,6 @@
+// expected: 1011, 1011
 
+type s = opaque{};
 
-type st = struct {
-  a: u32,
-  b: *const lol,
-  a: u32,
-};
-
+type f1 = enum(f32) {a};
+type f2 = enum(s) {a};

@@ -38,6 +38,14 @@ fn apigen_memory_arena_init(arena: *apigen_MemoryArena) void;
 fn apigen_memory_arena_deinit(arena: *apigen_MemoryArena) void;
 ```
 
+## Backends
+
+- [ ] C
+- [ ] C++
+- [ ] Zig
+- [ ] Rust
+- [ ] Go
+
 ## Missing features
 
 - [ ] Field alignment
@@ -46,6 +54,7 @@ fn apigen_memory_arena_deinit(arena: *apigen_MemoryArena) void;
 - [ ] Implementation stub generator
 - [ ] Packed structs
 - [ ] Bitfield generation (Zig: `packed struct`, C: int + macro helpers, Rust: ???)
+- [ ] Namespaces
 
 ## Building
 

@@ -2,11 +2,11 @@
 
 #include <string.h>
 
-struct apigen_diagnostic_item 
+struct apigen_DiagnosticItem 
 {
-    struct apigen_diagnostic_item * next;
+    struct apigen_DiagnosticItem * next;
 
-    enum apigen_diagnostic_code code;
+    enum apigen_DiagnosticCode code;
     
     char const * message;
     char const * file_name;
@@ -18,7 +18,7 @@ static bool is_in_range(int lo, int hi, int val)
     return (val >= lo) && (val <= hi);
 }
 
-static uint32_t classify_diag_code(enum apigen_diagnostic_code code)
+static uint32_t classify_diag_code(enum apigen_DiagnosticCode code)
 {
     if(is_in_range(APIGEN_DIAGNOSTIC_FIRST_ERR, APIGEN_DIAGNOSTIC_LAST_ERR, code)) {
         return APIGEN_DIAGNOSTIC_FLAG_ERROR;
@@ -34,7 +34,7 @@ static uint32_t classify_diag_code(enum apigen_diagnostic_code code)
     }
 }
 
-static char const * get_diag_code_fmt_string(enum apigen_diagnostic_code code)
+static char const * get_diag_code_fmt_string(enum apigen_DiagnosticCode code)
 {
     switch(code) {
 #define APIGEN_TEMP_MACRO(_Symbol, _Id, _Format) case _Symbol:  return _Format;
@@ -50,7 +50,7 @@ void apigen_diagnostics_emit(
         char const * file_name,
         uint32_t line_number,
         uint32_t column_number,
-        enum apigen_diagnostic_code code, 
+        enum apigen_DiagnosticCode code, 
         ...
     )
 {
@@ -65,7 +65,7 @@ void apigen_diagnostics_vemit(
         char const * file_name,
         uint32_t line_number,
         uint32_t column_number,
-        enum apigen_diagnostic_code code, 
+        enum apigen_DiagnosticCode code, 
         va_list src_list
     )
 {
@@ -94,8 +94,8 @@ void apigen_diagnostics_vemit(
         formatted_message[formatted_message_len] = 0; // ensure NULL terminator
     }
 
-    struct apigen_diagnostic_item * const item = apigen_memory_arena_alloc(diags->arena, sizeof(struct apigen_diagnostic_item));
-    *item = (struct apigen_diagnostic_item) {
+    struct apigen_DiagnosticItem * const item = apigen_memory_arena_alloc(diags->arena, sizeof(struct apigen_DiagnosticItem));
+    *item = (struct apigen_DiagnosticItem) {
         .next = diags->items,
 
         .code = code,
@@ -116,7 +116,7 @@ void apigen_diagnostics_render(struct apigen_Diagnostics const * diags, struct a
 {
     APIGEN_NOT_NULL(diags);
 
-    struct apigen_diagnostic_item const * iter = diags->items;
+    struct apigen_DiagnosticItem const * iter = diags->items;
     while(iter)
     {
         char const * type_kind = NULL;
@@ -140,6 +140,40 @@ void apigen_diagnostics_render(struct apigen_Diagnostics const * diags, struct a
         );
         iter = iter->next;
     }
+}
+
+
+bool apigen_diagnostics_remove_one(struct apigen_Diagnostics * diags, enum apigen_DiagnosticCode code)
+{
+    APIGEN_NOT_NULL(diags);
+
+    struct apigen_DiagnosticItem * previous = NULL;
+    struct apigen_DiagnosticItem * iter = diags->items;
+    while(iter)
+    {   
+        if(iter->code == code) {
+            if(previous != NULL) {
+                previous->next = iter->next;
+            }
+            if(iter == diags->items) {
+                diags->items = iter->next;
+            }
+            iter->next = NULL;
+            return true;
+        }
+        else {
+            previous = iter;
+            iter = iter->next;
+        }
+    }
+    return false;
+}
+
+bool apigen_diagnostics_has_any(struct apigen_Diagnostics const * diags)
+{
+    APIGEN_NOT_NULL(diags);
+
+    return (diags->items != 0);
 }
 
 void apigen_diagnostics_init(struct apigen_Diagnostics * diags, struct apigen_MemoryArena * arena)
