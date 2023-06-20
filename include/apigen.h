@@ -376,6 +376,14 @@ void apigen_diagnostics_vemit(
 
 void apigen_diagnostics_render(struct apigen_Diagnostics const * diags, struct apigen_Stream stream);
 
+// generators:
+
+bool apigen_render_c(struct apigen_Stream stream, struct apigen_MemoryArena * arena, struct apigen_Diagnostics * diagnostics, struct apigen_Document const * document);
+bool apigen_render_cpp(struct apigen_Stream stream, struct apigen_MemoryArena * arena, struct apigen_Diagnostics * diagnostics, struct apigen_Document const * document);
+bool apigen_render_zig(struct apigen_Stream stream, struct apigen_MemoryArena * arena, struct apigen_Diagnostics * diagnostics, struct apigen_Document const * document);
+bool apigen_render_rust(struct apigen_Stream stream, struct apigen_MemoryArena * arena, struct apigen_Diagnostics * diagnostics, struct apigen_Document const * document);
+bool apigen_render_go(struct apigen_Stream stream, struct apigen_MemoryArena * arena, struct apigen_Diagnostics * diagnostics, struct apigen_Document const * document);
+
 // predefined types:
 extern struct apigen_Type const apigen_type_void;
 extern struct apigen_Type const apigen_type_anyopaque;

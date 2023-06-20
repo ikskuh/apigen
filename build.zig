@@ -10,6 +10,7 @@ const strict_cflags = lax_cflags ++ [_][]const u8{
     "-Wreturn-type",
     "-Wimplicit-fallthrough",
     "-Wmissing-prototypes",
+    "-Wshadow",
 };
 
 pub fn build(b: *std.Build) void {
@@ -78,9 +79,10 @@ pub fn build(b: *std.Build) void {
             "src/type-pool.c",
             "src/analyzer.c",
             "src/parser/parser.c",
-            // "src/gen/c_cpp.c",
-            // "src/gen/rust.c",
-            // "src/gen/zig.c",
+            "src/gen/c_cpp.c",
+            "src/gen/rust.c",
+            "src/gen/zig.c",
+            "src/gen/go.c",
         },
         &strict_cflags,
     );

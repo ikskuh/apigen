@@ -233,9 +233,9 @@ static struct CliOptions parse_options_or_exit(int argc, char ** argv)
 
             size_t const opt_len = strlen(opt_string);
 
-            for(size_t i = 0; i < opt_len; i++)
+            for(size_t j = 0; j < opt_len; j++)
             {
-                char c = opt_string[i];
+                char c = opt_string[j];
 
                 if((c > 0) && ((size_t)c < sizeof(short_option_map))) {
                     char const * opt_expanded = short_option_map[(size_t)c];
@@ -307,29 +307,46 @@ static int regular_invocation(
         }
     }
 
-    bool parse_ok = apigen_parse(&state);
-    if(parse_ok) {
-        fprintf(stderr, "lex ok.\n");
-
+    bool ok = apigen_parse(&state);
+    if(ok) {
         struct apigen_Document document;
 
-        bool analyze_ok = apigen_analyze(&state, &document);
-        if(analyze_ok) {
-            fprintf(stderr, "analyze ok.\n");
+        ok = apigen_analyze(&state, &document);
+        if(ok) {
+
+            FILE * output;
+            if((options->output == NULL) || apigen_streq(options->output, "-")) {
+                output = stdout;
+            }
+            else {
+                output = fopen(options->output, "wb");
+                if(output == NULL) {
+                    fprintf(stderr, "error: could not open %s!\n", options->output);
+                    return EXIT_FAILURE;
+                }
+            }
+
+            struct apigen_Stream out_stream = apigen_io_file_stream(output);
+
+            switch(options->language) {
+                case LANG_C:    ok = apigen_render_c(out_stream, arena, diagnostics, &document);    break;
+                case LANG_CPP:  ok = apigen_render_cpp(out_stream, arena, diagnostics, &document);  break;
+                case LANG_ZIG:  ok = apigen_render_zig(out_stream, arena, diagnostics, &document);  break;
+                case LANG_RUST: ok = apigen_render_rust(out_stream, arena, diagnostics, &document); break;
+                case LANG_GO:   ok = apigen_render_go(out_stream, arena, diagnostics, &document);   break;
+            }
+
+            if(output != stdout) {
+                fclose(output);
+            }
         }
-        else {
-            fprintf(stderr, "analyze failed!\n");
-        }
-    }
-    else {
-        fprintf(stderr, "lex failed!\n");
     }
 
     if(state.file != stdin) {
         fclose(state.file);
     }
 
-    return parse_ok ? EXIT_SUCCESS : EXIT_FAILURE;
+    return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 struct CodeArray
