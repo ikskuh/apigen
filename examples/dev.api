@@ -24,4 +24,4 @@ var   foo1: pax_font_range;
 const foo2: pax_font_range;
 
 constexpr foo1: u32 = 0;
-constexpr foo2: u32 = "";
+constexpr foo2: i8 = -200;

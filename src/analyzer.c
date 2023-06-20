@@ -89,16 +89,71 @@ static bool is_integer_type(struct apigen_Type type)
     }
 }
 
+static bool is_char_type(struct apigen_Type const * type) {
+    APIGEN_NOT_NULL(type);
+    switch(type->id) {
+        case apigen_typeid_uchar: return true;
+        case apigen_typeid_ichar: return true;
+        case apigen_typeid_char:  return true;
+        case apigen_typeid_u8:    return true;
+        default:                  return false;
+    }
+}
 
-static bool is_stringly_type(struct apigen_Type type)
+static bool is_stringly_type(struct apigen_Type type, size_t len)
 {
     switch(type.id)
     {
-        case apigen_typeid_const_ptr_to_many:
-        case apigen_typeid_const_ptr_to_sentinelled_many:
-        case apigen_typeid_nullable_const_ptr_to_many:
-        case apigen_typeid_nullable_const_ptr_to_sentinelled_many:
-            return true;
+        struct apigen_Pointer const * pointer;
+        struct apigen_Array const * array;
+
+        case apigen_typeid_const_ptr_to_one:
+        case apigen_typeid_nullable_const_ptr_to_one:
+            pointer = type.extra;
+            APIGEN_ASSERT(pointer != NULL);
+
+            if(pointer->underlying_type->id != apigen_typeid_array) {
+                return false;
+            }
+
+            array = pointer->underlying_type->extra;
+            APIGEN_ASSERT(array != NULL);
+
+            if(array->size != len) {
+                return false;
+            }
+
+            return is_char_type(array->underlying_type);
+
+        case apigen_typeid_const_ptr_to_many: // [*]const X
+        case apigen_typeid_nullable_const_ptr_to_many: // ?[*]const X
+            pointer = type.extra;
+            APIGEN_ASSERT(pointer != NULL);
+            return is_char_type(pointer->underlying_type);
+            
+        case apigen_typeid_const_ptr_to_sentinelled_many: // [*:X]const X
+        case apigen_typeid_nullable_const_ptr_to_sentinelled_many: // ?[*:X]const X
+            pointer = type.extra;
+            APIGEN_ASSERT(pointer != NULL);
+            if(pointer->sentinel.type != apigen_value_uint) {
+               return false;
+            }
+            if(pointer->sentinel.value_uint != 0) {
+                return false;
+            }
+            return is_char_type(pointer->underlying_type);
+
+        case apigen_typeid_array:
+
+            array = type.extra;
+            APIGEN_ASSERT(array != NULL);
+
+            if(array->size != len) {
+                return false;
+            }
+
+            return is_char_type(array->underlying_type);
+
         default: 
             return false;
     }
@@ -1163,9 +1218,11 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                     .value         = decl->initial_value,
                 };
 
-                if(global->value.type == apigen_value_null) {
-                    emit_diagnostics(state, decl->location, apigen_error_constexpr_type_mismatch, global->name);
+                size_t length_hint = SIZE_MAX;
+                if(global->value.type == apigen_value_str) {
+                    length_hint = strlen(global->value.value_str);
                 }
+
 
                 if(global->type != NULL) {
                     if(is_integer_type(*global->type)) {
@@ -1193,7 +1250,7 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                             emit_diagnostics(state, decl->location, apigen_warning_constexpr_unchecked, global->name);
                         }
                     }
-                    else if(is_stringly_type(*global->type)) {
+                    else if(is_stringly_type(*global->type, length_hint)) {
                         if(global->value.type != apigen_value_str) {
                             emit_diagnostics(state, decl->location, apigen_error_constexpr_type_mismatch, global->name);
                         }
