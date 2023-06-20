@@ -1,0 +1,16 @@
+
+// check that pointer to many is accepted
+constexpr expr1: [*]const u8 = "short";
+constexpr expr2: [*]const u8 = "very long text";
+
+// check that pointer with sentinelled is accepted
+constexpr expr3: [*:0]const u8 = "short";
+constexpr expr4: [*:0]const u8 = "very long text";
+
+// check that pointer to array is accepted
+constexpr expr5: *const [5]u8 = "short";
+constexpr expr6: *const [14]u8 = "very long text";
+
+// check that pointer to sentinelled array is accepted
+constexpr expr7: *const [5:0]u8 = "short";
+constexpr expr8: *const [14:0]u8 = "very long text";

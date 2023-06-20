@@ -1,0 +1,5 @@
+// expected: 1013, 1013, 1013
+
+constexpr val1: u32 = "hello";
+constexpr val2: [*]const u8 = 0;
+constexpr val3: [*:0]const u8 = 0;

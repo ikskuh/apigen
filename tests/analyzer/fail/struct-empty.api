@@ -1,7 +1,3 @@
 // expected: 6001
 
-type bad = struct {
-  a: u32,
-  b: *const lol,
-  a: u32,
-};
+type bad = struct {};

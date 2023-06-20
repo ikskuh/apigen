@@ -128,7 +128,7 @@ enum apigen_TypeId {
   apigen_typeid_struct,   // extra: apigen_UnionOrStruct
   apigen_typeid_union,    // extra: apigen_UnionOrStruct
   apigen_typeid_array,    // extra: apigen_Array
-  apigen_typeid_function, // extra: apigen_Function
+  apigen_typeid_function, // extra: apigen_FunctionType
 
   APIGEN_TYPEID_LIMIT,
 };
@@ -136,7 +136,8 @@ enum apigen_TypeId {
 struct apigen_Type {
   enum apigen_TypeId id;
   void const *       extra; ///< Points to extra information to interpret this type.
-  char const *       name;  ///< Non-NULL if the type has was explicitly declared with a name. Otherwise, this type is anonymous
+  char const *       name;  ///< Non-NULL if the type has was explicitly declared with a name. Otherwise, this type has no name assigned
+  bool               is_anonymous; ///< Type was created implicitly in a nested type construct, but still requires a name.
 };
 
 struct apigen_Pointer {
@@ -177,7 +178,7 @@ struct apigen_UnionOrStruct {
     struct apigen_NamedValue * fields;
 };
 
-struct apigen_Function {
+struct apigen_FunctionType {
     struct apigen_Type const * return_type;
 
     size_t                     parameter_count;
@@ -241,6 +242,12 @@ struct apigen_Global {
     bool                       is_const;
 };
 
+struct apigen_Function {
+    char const *               documentation;
+    char const *               name;
+    struct apigen_Type const * type;
+};
+
 struct apigen_Constant {
     char const *               documentation;
     char const *               name;
@@ -255,7 +262,7 @@ struct apigen_Document {
     struct apigen_Type const * * types;
 
     size_t                       function_count;
-    struct apigen_Type const * * functions; ///< As functions have no body, we can store them as named types as well.
+    struct apigen_Function *     functions; ///< As functions have no body, we can store them as named types as well.
 
     size_t                       variable_count;
     struct apigen_Global *       variables;
@@ -300,22 +307,25 @@ bool apigen_analyze(struct apigen_ParserState *state, struct apigen_Document * o
 
 // Expects _Mac(Symbol, ID, Format String)
 #define APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(_Mac)          \
-    _Mac(apigen_error_array_size_not_uint,   1000, "Array size is not an unsigend integer")    \
-    _Mac(apigen_error_duplicate_field,       1001, "Struct or enumeration already contains a member with the name '%s'")    \
-    _Mac(apigen_error_duplicate_parameter,   1002, "A parameter with the name '%s' already exists")    \
-    _Mac(apigen_error_duplicate_enum_item,   1003, "An enumeration member with the name 's' already exists")    \
-    _Mac(apigen_error_duplicate_enum_value,  1004, "Enumeration member '%s' has value %s, which is already assigned to enumeration member '%s'")    \
-    _Mac(apigen_error_enum_out_of_range,     1005, "Value %s is out of range for enumeration member '%s'")    \
-    _Mac(apigen_error_enum_value_illegal,    1006, "Enumeration member '%s' has a non-integer value")    \
-    _Mac(apigen_error_duplicate_symbol,      1007, "The symbol '%s' is already declared") \
-    _Mac(apigen_error_syntax_error,          1008, "Syntax error at symbol '%s': %s")     \
-    _Mac(apigen_error_undeclared_identifier, 1009, "Undeclared identifier '%s'")        \
-    _Mac(apigen_error_unresolved_symbols,    1010, "Found %zu cyclic dependencies or undeclared types")  \
-    _Mac(apigen_error_enum_type_must_be_int, 1011, "Enum backing type must be an integer") \
-    _Mac(apigen_error_enum_empty,            1012, "Enums must contain at least one item") \
+    _Mac(apigen_error_array_size_not_uint,     1000, "Array size is not an unsigend integer")    \
+    _Mac(apigen_error_duplicate_field,         1001, "Struct or enumeration already contains a member with the name '%s'")    \
+    _Mac(apigen_error_duplicate_parameter,     1002, "A parameter with the name '%s' already exists")    \
+    _Mac(apigen_error_duplicate_enum_item,     1003, "An enumeration member with the name 's' already exists")    \
+    _Mac(apigen_error_duplicate_enum_value,    1004, "Enumeration member '%s' has value %s, which is already assigned to enumeration member '%s'")    \
+    _Mac(apigen_error_enum_out_of_range,       1005, "Value %s is out of range for enumeration member '%s'")    \
+    _Mac(apigen_error_enum_value_illegal,      1006, "Enumeration member '%s' has a non-integer value")    \
+    _Mac(apigen_error_duplicate_symbol,        1007, "The symbol '%s' is already declared") \
+    _Mac(apigen_error_syntax_error,            1008, "Syntax error at symbol '%s': %s")     \
+    _Mac(apigen_error_undeclared_identifier,   1009, "Undeclared identifier '%s'")        \
+    _Mac(apigen_error_unresolved_symbols,      1010, "Found %zu cyclic dependencies or undeclared types")  \
+    _Mac(apigen_error_enum_type_must_be_int,   1011, "Enum backing type must be an integer") \
+    _Mac(apigen_error_enum_empty,              1012, "Enums must contain at least one item") \
+    _Mac(apigen_error_constexpr_type_mismatch, 1013, "The value assigned to constant '%s' does not match its type") \
+    _Mac(apigen_error_constexpr_out_of_range,  1014, "The value assigned to constant '%s' is out of range") \
+    _Mac(apigen_error_internal,                5999, "Internal compiler error") \
     \
-    _Mac(apigen_warning_enum_int_undefined,  6000, "Chosen enum backing type %s has no well-defined range. Generated code may not be portable") \
-    _Mac(apigen_warning_struct_empty,        6001, "An empty struct or union can be defined, but is not guaranteed to be portable between platforms or compilers.")
+    _Mac(apigen_warning_enum_int_undefined,    6000, "Chosen enum backing type %s has no well-defined range. Generated code may not be portable") \
+    _Mac(apigen_warning_struct_empty,          6001, "An empty struct or union can be defined, but is not guaranteed to be portable between platforms or compilers.")
 
 enum apigen_DiagnosticCode
 {

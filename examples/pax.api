@@ -14,6 +14,44 @@
 
 type pax_col_t = u32;
 
+type pax_quadf = struct {
+    x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32,
+};
+
+type pax_trif = struct {
+    x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32
+};
+
+type pax_linef = struct {
+    x0: f32, y0: f32, x1: f32, y1: f32
+};
+
+type pax_recti = struct {
+    x: c_int, y: c_int, w: c_int, h: c_int,
+};
+
+type pax_buftype = enum {
+    PAX_BUF_1_PAL       = 0x20000001,
+    PAX_BUF_2_PAL       = 0x20000002,
+    PAX_BUF_4_PAL       = 0x20000004,
+    PAX_BUF_8_PAL       = 0x20000008,
+    PAX_BUF_16_PAL      = 0x20000010,
+
+    PAX_BUF_1_GREY      = 0x10000001,
+    PAX_BUF_2_GREY      = 0x10000002,
+    PAX_BUF_4_GREY      = 0x10000004,
+    PAX_BUF_8_GREY      = 0x10000008,
+
+    PAX_BUF_8_332RGB    = 0x00033208,
+    PAX_BUF_16_565RGB   = 0x00056510,
+
+    PAX_BUF_4_1111ARGB  = 0x00111104,
+    PAX_BUF_8_2222ARGB  = 0x00444408,
+    PAX_BUF_16_4444ARGB = 0x00444410,
+    PAX_BUF_32_8888ARGB = 0x00888820
+};
+
+
 type pax_err_t = enum(i32) {
     PAX_ERR_UNKNOWN = 1, // Unknown error.
     PAX_OK = 0, // All is good.
@@ -108,10 +146,6 @@ type pax_font_type = enum {
     PAX_FONT_TYPE_BITMAP_VAR, // For variable pitch bitmapped fonts.
 };
 
-// typedef enum   pax_bufype    pax_buftype;
-// typedef enum   pax_orientation pax_orientation;
-// typedef enum   pax_word_wrap   pax_word_wrap_t;
-// typedef enum   pax_task_type   pax_task_type_t;
 // typedef enum   pax_font_type   pax_font_type_t;
 
 // // Promises that the shape will be fully opaque when drawn.
@@ -148,32 +182,40 @@ type pax_col_union = union {
 // // Helper for color conversion.
 // // Used for both buffer type to ARGB and vice versa.
 // // Buffer argument is mostly used for images with palette.
-// typedef pax_col_t (*pax_col_conv_t)(const pax_buf *buf, pax_col_t color);
+type pax_col_conv =  fn (buf: *const pax_buf, color: pax_col_t) pax_col_t;
 
 // // Helper for setting pixels in drawing routines.
 // // Used to allow optimising away alpha in colors.
-// typedef void (*pax_setter_t)(pax_buf *buf, pax_col_t color, c_int x, c_int y);
+type pax_setter =  fn (buf: *pax_buf, color: pax_col_t, x: c_int, y: c_int) void;
 
 // // Helper for getting pixels in drawing routines.
 // // Used to allow optimising away inline branching.
-// typedef pax_col_t (*pax_index_getter_t)(const pax_buf *buf, c_int index);
+type pax_index_getter =  fn (buf: *const pax_buf, index: c_int) pax_col_t;
 
 // // Helper for setting pixels in drawing routines.
 // // Used to allow optimising away color conversion.
-// typedef void (*pax_index_setter_t)(pax_buf *buf, pax_col_t color, c_int index);
+type pax_index_setter =  fn (buf: *pax_buf, color: pax_col_t, index: c_int) void;
 
 // // Function pointer for shader promises.
 // // The promise function will provide a bitfield answer to contextual questions where false is the safe option.
-// typedef uint64_t (*pax_promise_func_t)(pax_buf *buf, pax_col_t tint, void *args);
+type pax_promise_func =  fn (buf: *pax_buf, tint: pax_col_t , args: ?*anyopaque) u64;
 
 // // Function pointer for shader callback.
 // // Tint is the color parameter to the pax_shade_xxx function.
-// typedef pax_col_t (*pax_shader_func_v0_t)(pax_col_t tint, c_int x, c_int y, float u, float v, void *args);
+type pax_shader_func_v0 =  fn (tint: pax_col_t, x: c_int, y: c_int, u: f32, v: f32, args: ?*anyopaque) pax_col_t;
 
 // Function pointer for shader callback.
 // Tint is the color parameter to the pax_shade_xxx function.
 // It is assumed that color math is done by the shader based on the "existing" parameter.
-// type pax_shader_func_v1_t = fn (tint: pax_col_t, existing: pax_col_t, x: c_int, y: c_int, u: f32, v: f32, args: ?*anyopaque) pax_col_t;
+type pax_shader_func_v1 = fn (tint: pax_col_t, existing: pax_col_t, x: c_int, y: c_int, u: f32, v: f32, args: ?*anyopaque) pax_col_t;
+
+type matrix_2d = struct {
+    // TODO: Implement union semantics 
+    
+    a0: f32, a1: f32, a2: f32,
+    b0: f32, b1: f32, b2: f32,
+
+};
 
 // // A simple linked list data structure used to store matrices in a stack.
 type matrix_stack_2d = struct {
@@ -224,14 +266,14 @@ type pax_buf = struct {
     dirty_y1: c_int,
 
     // Color to buffer function to use.
-    col2buf: pax_col_conv_t,
+    col2buf: pax_col_conv,
     // Buffer to color function to use.
-    buf2col: pax_col_conv_t,
+    buf2col: pax_col_conv,
 
     // Setter to use to write a pixel index.
-    setter: pax_index_setter_t,
+    setter: pax_index_setter,
     // Getter to use to read a pixel index.
-    getter: pax_index_getter_t,
+    getter: pax_index_getter,
 
     // Clip rectangle.
     // Shapes are only drawn inside the clip rectangle.
@@ -239,7 +281,7 @@ type pax_buf = struct {
     clip: pax_recti,
     // Matrix stack.
     // The top most entry is used to transform shapes.
-    stack_2d: matrix_stack_2d_t,
+    stack_2d: matrix_stack_2d,
 
     // Orientation setting.
     orientation: pax_orientation,
@@ -326,9 +368,9 @@ type pax_font = struct {
 // You should run pax_join before making the change.
 type pax_task = struct {
     buffer: *pax_buf, // The buffer to apply this task to.
-    @"type": pax_task_type_t, // The type of thing to do.
+    @"type": pax_task_type, // The type of thing to do.
     color: pax_col_t, // Color to use.
-    shader: pax_shader_t, // Shader to use.
+    shader: pax_shader, // Shader to use.
     use_shader: bool, // Whether to use a shader.
     // UVs to use.
     uvs: union {
@@ -342,7 +384,7 @@ type pax_task = struct {
 
 // Context used at drawing time for shaders.
 type pax_shader_ctx = struct {
-    callback: pax_shader_func_v1_t, // The callback internally used per pixel.
+    callback: pax_shader_func_v1, // The callback internally used per pixel.
     callback_args: ?*anyopaque, // The args to throw at the callback.
     skip: bool, // Whether to skip drawing.
     do_getter: bool, // Whether to do a get the pixel value for merging.
@@ -432,7 +474,7 @@ fn pax_col_merge(base: pax_col_t, top: pax_col_t) pax_col_t;
 
 fn pax_col_tint(col: pax_col_t, tint: pax_col_t) pax_col_t;
 
-fn pax_apply_2d(buf: *pax_buf, a: matrix_2d_t) void;
+fn pax_apply_2d(buf: *pax_buf, a: matrix_2d) void;
 
 fn pax_push_2d(buf: *pax_buf) void;
 
@@ -450,15 +492,15 @@ fn pax_set_pixel_raw(buf: *pax_buf, color: pax_col_t, x: c_int, y: c_int) void;
 
 fn pax_get_pixel_raw(buf: *const pax_buf, x: c_int, y: c_int) pax_col_t;
 
-fn pax_shade_rect(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_quadf, x: f32, y: f32, width: f32, height: f32) void;
+fn pax_shade_rect(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader, uvs: *const pax_quadf, x: f32, y: f32, width: f32, height: f32) void;
 
-fn pax_shade_line(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_linef, x0: f32, y0: f32, x1: f32, y1: f32) void;
+fn pax_shade_line(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader, uvs: *const pax_linef, x0: f32, y0: f32, x1: f32, y1: f32) void;
 
-fn pax_shade_tri(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_trif, x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32) void;
+fn pax_shade_tri(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader, uvs: *const pax_trif, x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32) void;
 
-fn pax_shade_arc(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_quadf, x: f32, y: f32, r: f32, a0: f32, a1: f32) void;
+fn pax_shade_arc(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader, uvs: *const pax_quadf, x: f32, y: f32, r: f32, a0: f32, a1: f32) void;
 
-fn pax_shade_circle(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader_t, uvs: *const pax_quadf, x: f32, y: f32, r: f32) void;
+fn pax_shade_circle(buf: *pax_buf, color: pax_col_t, shader: *const pax_shader, uvs: *const pax_quadf, x: f32, y: f32, r: f32) void;
 
 fn pax_draw_image(buf: *pax_buf, image: *const pax_buf, x: f32, y: f32) void;
 

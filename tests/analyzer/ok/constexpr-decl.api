@@ -1,0 +1,4 @@
+
+constexpr expr1: u32 = 5;
+constexpr expr2: [*:0]const u8 = "string";
+constexpr expr3: i32 = -5;

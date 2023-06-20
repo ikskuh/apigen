@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <limits.h>
 #include <inttypes.h>
+#include <string.h>
 
 static void emit_diagnostics(
     struct apigen_ParserState * const parser,
@@ -38,6 +39,22 @@ static bool is_unique_type(enum apigen_ParserTypeId id) {
         case apigen_parser_type_ptr_to_many:                return false;
         case apigen_parser_type_ptr_to_many_sentinelled:    return false;
         case apigen_parser_type_function:                   return false;
+    }
+}
+
+static enum apigen_TypeId map_unique_parser_type_id(enum apigen_ParserTypeId id) {
+    APIGEN_ASSERT(is_unique_type(id));
+    switch(id) {
+        case apigen_parser_type_enum:                       return apigen_typeid_enum;
+        case apigen_parser_type_struct:                     return apigen_typeid_struct;
+        case apigen_parser_type_union:                      return apigen_typeid_union;
+        case apigen_parser_type_opaque:                     return apigen_typeid_opaque;
+        case apigen_parser_type_named:                      APIGEN_UNREACHABLE();
+        case apigen_parser_type_array:                      APIGEN_UNREACHABLE();
+        case apigen_parser_type_ptr_to_one:                 APIGEN_UNREACHABLE();
+        case apigen_parser_type_ptr_to_many:                APIGEN_UNREACHABLE();
+        case apigen_parser_type_ptr_to_many_sentinelled:    APIGEN_UNREACHABLE();
+        case apigen_parser_type_function:                   APIGEN_UNREACHABLE();
     }
 }
 
@@ -217,6 +234,65 @@ enum ResolveStateResponse
     RESOLVE_MISSING_SYMBOL = 10,
 };
 
+struct GlobalResolutionQueueNode
+{
+    struct GlobalResolutionQueueNode * next;
+
+    struct apigen_Type *               dst_type;
+    struct apigen_ParserType const *   src_type;
+};
+
+struct GlobalResolutionQueue
+{
+    struct apigen_MemoryArena * arena;
+
+    size_t len;
+
+    struct GlobalResolutionQueueNode * head;
+    struct GlobalResolutionQueueNode * tail;
+};
+
+static void gsq_push(struct GlobalResolutionQueue * q, struct GlobalResolutionQueueNode * node)
+{
+    node->next = NULL;
+
+    if(q->tail == NULL) {
+        q->head = node;
+        q->tail = node;
+        APIGEN_ASSERT(q->len == 0);
+    }
+    else {
+        APIGEN_ASSERT(q->len > 0);
+        APIGEN_ASSERT(q->head != NULL);
+        q->tail->next = node;
+        q->tail = node;
+    }   
+
+    q->len += 1;
+}
+
+static struct GlobalResolutionQueueNode * gsq_pop(struct GlobalResolutionQueue * q)
+{
+    if(q->head == NULL) {
+        APIGEN_ASSERT(q->len == 0);
+        APIGEN_ASSERT(q->tail == NULL);
+        return NULL;
+    }
+    else {
+        struct GlobalResolutionQueueNode * item = q->head;
+        q->head = q->head->next;
+        q->len -= 1;
+
+        if(q->head == NULL) {
+            APIGEN_ASSERT(q->tail == item);
+            q->tail = NULL;
+
+            APIGEN_ASSERT(q->len == 0);
+        }
+        return item;
+    }
+}
+
 struct ResolveState 
 {
     struct apigen_ParserState * parser;
@@ -224,6 +300,11 @@ struct ResolveState
 
     bool emit_resolve_errors;    
     jmp_buf generic_error_retpoint;
+
+    char nested_type_name_hint_buf[1024];
+    size_t nested_type_name_hint_len;
+
+    struct GlobalResolutionQueue * global_resolver_queue;
 };
 
 static void APIGEN_NORETURN handle_resolve_error(struct ResolveState * state, struct apigen_ParserType const * const type)
@@ -241,6 +322,28 @@ static void APIGEN_NORETURN exit_type_resolution(struct ResolveState * state)
 {
     APIGEN_NOT_NULL(state);
     longjmp(state->generic_error_retpoint, RESOLVE_FAILED_GENERIC);
+}
+
+static char const * unique_type_suffix(enum apigen_ParserTypeId id)
+{
+    switch(id) {
+        case apigen_parser_type_enum:   return "enum";
+        case apigen_parser_type_struct: return "struct";
+        case apigen_parser_type_union:  return "union";
+        case apigen_parser_type_opaque: return "opaque";
+        default:                        APIGEN_UNREACHABLE();
+    }
+}
+
+static void resolver_notify_unique_type(struct ResolveState * resolver, struct apigen_Type * unique_type, struct apigen_ParserType const * src_type)
+{
+    struct GlobalResolutionQueueNode * node = apigen_memory_arena_alloc(resolver->global_resolver_queue->arena, sizeof(struct GlobalResolutionQueueNode));
+    *node = (struct GlobalResolutionQueueNode) {
+        .next = NULL,
+        .dst_type = unique_type,
+        .src_type = src_type,
+    };
+    gsq_push(resolver->global_resolver_queue, node);
 }
 
 static struct apigen_Type const * resolve_type_inner(struct ResolveState * resolver, struct apigen_ParserType const * src_type)
@@ -356,7 +459,7 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
                 }
             }
 
-            struct apigen_Function const extra_data = (struct apigen_Function) {
+            struct apigen_FunctionType const extra_data = (struct apigen_FunctionType) {
                 .return_type = return_type,
                 .parameter_count = parameter_count,
                 .parameters = parameters,  
@@ -374,8 +477,27 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
         case apigen_parser_type_enum: 
         case apigen_parser_type_struct:
         case apigen_parser_type_union: 
-        case apigen_parser_type_opaque: { 
-            apigen_panic("cannot resolve unique type in this part of the code!");
+        case apigen_parser_type_opaque: {
+            char const * const type_name_suffix = unique_type_suffix(src_type->type);
+
+            size_t const total_len = strlen(resolver->nested_type_name_hint_buf) + strlen(type_name_suffix) + 2;
+
+            char * const nested_type_name = apigen_memory_arena_alloc(resolver->pool->arena, total_len);
+            strcpy(nested_type_name, resolver->nested_type_name_hint_buf);
+            strcat(nested_type_name, "_");
+            strcat(nested_type_name, type_name_suffix);
+
+            struct apigen_Type * const unique_type = apigen_memory_arena_alloc(resolver->pool->arena, sizeof(struct apigen_Type));
+            *unique_type = (struct apigen_Type) {
+                .name = nested_type_name,
+                .id = map_unique_parser_type_id(src_type->type),
+                .extra = NULL, // no internal resolution yet
+                .is_anonymous = true,
+            };
+
+            resolver_notify_unique_type(resolver, unique_type, src_type);
+            
+            return unique_type;
         }
     }
 
@@ -385,7 +507,9 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
 static struct apigen_Type const * resolve_type(
         struct apigen_ParserState * const parser,
         struct apigen_TypePool * const pool,
+        struct GlobalResolutionQueue * resolve_queue,
         bool emit_resolve_errors,
+        char const * container_name,
         struct apigen_ParserType const * src_type,
         bool * non_resolve_error // will be set to `true` if a non-resolution error occurred
     )
@@ -393,12 +517,21 @@ static struct apigen_Type const * resolve_type(
     APIGEN_NOT_NULL(parser);
     APIGEN_NOT_NULL(pool);
     APIGEN_NOT_NULL(src_type);
+    APIGEN_NOT_NULL(container_name);
 
     struct ResolveState resolve_state = {
         .parser = parser,
         .pool = pool,
         .emit_resolve_errors = emit_resolve_errors,
+        .global_resolver_queue = resolve_queue,
+
+        .nested_type_name_hint_buf = {},
+        .nested_type_name_hint_len = 0,
     };
+
+    resolve_state.nested_type_name_hint_len = strlen(container_name);
+    memcpy(resolve_state.nested_type_name_hint_buf, container_name, resolve_state.nested_type_name_hint_len);
+    resolve_state.nested_type_name_hint_buf[resolve_state.nested_type_name_hint_len] = 0;
 
     int const response = setjmp(resolve_state.generic_error_retpoint);
     if(response == 0)
@@ -422,33 +555,18 @@ static struct apigen_Type const * resolve_type(
     }
 }
 
-static enum apigen_TypeId map_unique_parser_type_id(enum apigen_ParserTypeId id) {
-    APIGEN_ASSERT(is_unique_type(id));
-    switch(id) {
-        case apigen_parser_type_enum:                       return apigen_typeid_enum;
-        case apigen_parser_type_struct:                     return apigen_typeid_struct;
-        case apigen_parser_type_union:                      return apigen_typeid_union;
-        case apigen_parser_type_opaque:                     return apigen_typeid_opaque;
-        case apigen_parser_type_named:                      APIGEN_UNREACHABLE();
-        case apigen_parser_type_array:                      APIGEN_UNREACHABLE();
-        case apigen_parser_type_ptr_to_one:                 APIGEN_UNREACHABLE();
-        case apigen_parser_type_ptr_to_many:                APIGEN_UNREACHABLE();
-        case apigen_parser_type_ptr_to_many_sentinelled:    APIGEN_UNREACHABLE();
-        case apigen_parser_type_function:                   APIGEN_UNREACHABLE();
-    }
-}
-
-static bool analyze_struct_type(struct apigen_ParserState * const state, struct apigen_TypePool * const type_pool, struct apigen_ParserDeclaration const * const decl)
+static bool analyze_struct_type(struct apigen_ParserState * const state, struct apigen_TypePool * const type_pool, struct GlobalResolutionQueue * const resolve_queue, struct apigen_Type * const dst_type, struct apigen_ParserType const * const src_type)
 {
     APIGEN_NOT_NULL(state);
     APIGEN_NOT_NULL(type_pool);
-    APIGEN_NOT_NULL(decl);
+    APIGEN_NOT_NULL(dst_type);
+    APIGEN_NOT_NULL(src_type);
 
     bool ok = true;
 
     size_t field_count = 0;
     {
-        struct apigen_ParserField const * field = decl->type.union_struct_fields;
+        struct apigen_ParserField const * field = src_type->union_struct_fields;
         while(field != NULL) {
             field_count += 1;
             field = field->next;
@@ -460,13 +578,16 @@ static bool analyze_struct_type(struct apigen_ParserState * const state, struct 
     if(field_count > 0)
     {
         size_t index = 0;
-        struct apigen_ParserField const * src_field = decl->type.union_struct_fields;
+        struct apigen_ParserField const * src_field = src_type->union_struct_fields;
         while(src_field != NULL) {
+            char type_hint_buffer[1024];
+            snprintf(type_hint_buffer, sizeof(type_hint_buffer)-1, "%s_%s", dst_type->name, src_field->identifier);
+
             struct apigen_NamedValue * const dst_field = &fields[index];
             *dst_field = (struct apigen_NamedValue) {
                 .documentation = apigen_memory_arena_dupestr(type_pool->arena, src_field->documentation),
                 .name          = apigen_memory_arena_dupestr(type_pool->arena, src_field->identifier),
-                .type          = resolve_type(state, type_pool, true, &src_field->type, NULL),
+                .type          = resolve_type(state, type_pool, resolve_queue, true, type_hint_buffer, &src_field->type, NULL),
             };
 
             for(size_t i = 0; i < index; i++)
@@ -488,7 +609,7 @@ static bool analyze_struct_type(struct apigen_ParserState * const state, struct 
     }
     else
     {
-        emit_diagnostics(state, decl->type.location, apigen_warning_struct_empty);
+        emit_diagnostics(state, src_type->location, apigen_warning_struct_empty);
     }
 
     struct apigen_UnionOrStruct * const struct_or_union = apigen_memory_arena_alloc(type_pool->arena, sizeof(struct apigen_UnionOrStruct));
@@ -497,34 +618,35 @@ static bool analyze_struct_type(struct apigen_ParserState * const state, struct 
         .fields      = fields,
     };
 
-    decl->associated_type->extra = struct_or_union;
+    dst_type->extra = struct_or_union;
 
     return ok;
 }
 
-static bool analyze_enum_type(struct apigen_ParserState * const state, struct apigen_TypePool * const type_pool, struct apigen_ParserDeclaration const * const decl)
+static bool analyze_enum_type(struct apigen_ParserState * const state, struct apigen_TypePool * const type_pool, struct GlobalResolutionQueue * resolve_queue, struct apigen_Type * const dst_type, struct apigen_ParserType const * const src_type)
 {
     APIGEN_NOT_NULL(state);
     APIGEN_NOT_NULL(type_pool);
-    APIGEN_NOT_NULL(decl);
+    APIGEN_NOT_NULL(dst_type);
+    APIGEN_NOT_NULL(src_type);
 
     bool ok = true;
 
     struct ValueRange int_range = { 0, 0 };
 
     struct apigen_Type const * underlying_type = NULL;
-    if(decl->type.enum_data.underlying_type != NULL) {
-        underlying_type = resolve_type(state, type_pool, true, decl->type.enum_data.underlying_type, NULL);
+    if(src_type->enum_data.underlying_type != NULL) {
+        underlying_type = resolve_type(state, type_pool, resolve_queue, true, dst_type->name, src_type->enum_data.underlying_type, NULL);
         if(underlying_type != NULL) {
             if(is_integer_type(*underlying_type)) {
                 int_range = get_integer_range(underlying_type->id);
 
                 if(!range_is_valid(int_range)) {
-                    emit_diagnostics(state, decl->type.enum_data.underlying_type->location, apigen_warning_enum_int_undefined, "u32");
+                    emit_diagnostics(state, src_type->enum_data.underlying_type->location, apigen_warning_enum_int_undefined, "u32");
                 }
             }
             else {
-                emit_diagnostics(state, decl->type.enum_data.underlying_type->location, apigen_error_enum_type_must_be_int);
+                emit_diagnostics(state, src_type->enum_data.underlying_type->location, apigen_error_enum_type_must_be_int);
                 ok = false;
                 underlying_type = NULL; // just go auto-deduction route here, so we can check more errors
             }
@@ -537,7 +659,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
 
     size_t items_count = 0;
     {
-        struct apigen_ParserEnumItem const * iter = decl->type.enum_data.items;
+        struct apigen_ParserEnumItem const * iter = src_type->enum_data.items;
         while(iter != NULL) {
             items_count += 1;
             iter = iter->next;
@@ -549,7 +671,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
         struct apigen_EnumItem * const items = apigen_memory_arena_alloc(type_pool->arena, items_count * sizeof(struct apigen_EnumItem));
         {
             size_t index = 0;
-            struct apigen_ParserEnumItem const * iter = decl->type.enum_data.items;
+            struct apigen_ParserEnumItem const * iter = src_type->enum_data.items;
             union {
                 uint64_t uval;
                 int64_t ival;
@@ -722,15 +844,45 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
             .item_count = items_count,
             .items = items,
         };
-        decl->associated_type->extra = enum_extra;
+        dst_type->extra = enum_extra;
     }
     else 
     {
-        emit_diagnostics(state, decl->type.location, apigen_error_enum_empty);
+        emit_diagnostics(state, src_type->location, apigen_error_enum_empty);
         ok = false;
     }
 
     return ok;
+}
+
+static bool resolve_unique_type(
+    struct apigen_ParserState * const state,
+    struct apigen_TypePool * const type_pool,
+    struct GlobalResolutionQueue * resolve_queue,
+    struct apigen_Type * const dst_type, 
+    struct apigen_ParserType const * const src_type
+    )
+{
+    switch(src_type->type)
+    {
+        case apigen_parser_type_struct:
+        case apigen_parser_type_union:
+        {
+            return analyze_struct_type(state, type_pool, resolve_queue, dst_type, src_type);
+        }
+
+        case apigen_parser_type_enum:
+        {
+            return analyze_enum_type(state, type_pool, resolve_queue, dst_type, src_type);
+        }
+
+        case apigen_parser_type_opaque:
+            // opaque types do not have any EXTRA, they are already fully resolved.
+            return true;
+
+        default:
+            APIGEN_UNREACHABLE();
+    }
 }
 
 bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Document * const out_document)
@@ -756,6 +908,10 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
 
         .constant_count = 0,
         .constants      = NULL,
+    };
+
+    struct GlobalResolutionQueue resolve_queue = {
+        .arena = out_document->type_pool.arena,   
     };
 
     // Phase 1: Figure out how much memory we need for all exported declarations:
@@ -784,7 +940,7 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
         }
 
         out_document->types     = apigen_memory_arena_alloc(state->ast_arena, out_document->type_count     * sizeof(struct apigen_Type const *));
-        out_document->functions = apigen_memory_arena_alloc(state->ast_arena, out_document->function_count * sizeof(struct apigen_Type const *));
+        out_document->functions = apigen_memory_arena_alloc(state->ast_arena, out_document->function_count * sizeof(struct apigen_Function));
         out_document->variables = apigen_memory_arena_alloc(state->ast_arena, out_document->variable_count * sizeof(struct apigen_Global));
         out_document->constants = apigen_memory_arena_alloc(state->ast_arena, out_document->constant_count * sizeof(struct apigen_Constant));
     }
@@ -802,6 +958,7 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                         .name = decl->identifier,
                         .id = map_unique_parser_type_id(decl->type.type),
                         .extra = NULL, // no internal resolution yet
+                        .is_anonymous = false,
                     };
 
                     if(!apigen_register_type(&out_document->type_pool, unique_type, NULL)) {
@@ -836,7 +993,7 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                     if(decl->associated_type == NULL) {
                         APIGEN_ASSERT(!is_unique_type( decl->type.type));
                     
-                        struct apigen_Type const * const resolved_type = resolve_type(state, &out_document->type_pool, emit_resolve_errors, &decl->type, &non_resolve_error);
+                        struct apigen_Type const * const resolved_type = resolve_type(state, &out_document->type_pool, &resolve_queue, emit_resolve_errors, decl->identifier, &decl->type, &non_resolve_error);
                         if(resolved_type != NULL) {
 
                             if(apigen_register_type(&out_document->type_pool, resolved_type, decl->identifier)) {
@@ -886,31 +1043,10 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
             if(decl->kind == apigen_parser_type_declaration) {
                 if(is_unique_type(decl->type.type)) {
                     APIGEN_ASSERT(decl->associated_type != NULL);
-                    switch(decl->type.type)
-                    {
-                        case apigen_parser_type_struct:
-                        case apigen_parser_type_union:
-                        {
-                            if(!analyze_struct_type(state, &out_document->type_pool, decl)) {
-                                ok = false;
-                            }
-                            break;
-                        }
 
-                        case apigen_parser_type_enum:
-                        {
-                            if(!analyze_enum_type(state, &out_document->type_pool, decl)) {
-                                ok = false;
-                            }
-                            break;
-                        }
-
-                        case apigen_parser_type_opaque:
-                            // opaque types do not have any EXTRA, they are already fully resolved.
-                            break;
-
-                        default:
-                            APIGEN_UNREACHABLE();
+                    bool const resolve_ok = resolve_unique_type(state, &out_document->type_pool, &resolve_queue, decl->associated_type, &decl->type);
+                    if(!resolve_ok) {
+                        ok = false;
                     }
                 }                
             }
@@ -934,6 +1070,146 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
             decl = decl->next;
         }
         APIGEN_ASSERT(index == out_document->type_count);
+    }
+
+    // Phase 6: Resolve external variables (globals, consts)
+    {
+        bool ok = true;
+        size_t index = 0;
+        struct apigen_ParserDeclaration const * decl = state->top_level_declarations;
+        while(decl != NULL) {
+            if((decl->kind == apigen_parser_const_declaration) || (decl->kind == apigen_parser_var_declaration)) {
+                struct apigen_Global * const global = &out_document->variables[index];
+                *global = (struct apigen_Global) {
+                    .documentation = apigen_memory_arena_dupestr(out_document->type_pool.arena, decl->documentation),
+                    .name          = apigen_memory_arena_dupestr(out_document->type_pool.arena, decl->identifier),
+                    .type          = resolve_type(state, &out_document->type_pool, &resolve_queue, true, decl->identifier, &decl->type, NULL),
+                    .is_const      = (decl->kind == apigen_parser_const_declaration),
+                };
+                if(global->type != NULL) {
+                    // TODO: Check viability?
+                } else {
+                    ok = false;
+                }
+
+                index += 1;
+            }
+            decl = decl->next;
+        }
+        APIGEN_ASSERT(index == out_document->variable_count);
+        if(!ok) {
+            return false;
+        }
+    }
+
+    // Phase 7: Resolve function definitions
+    {
+        bool ok = true;
+        size_t index = 0;
+        struct apigen_ParserDeclaration const * decl = state->top_level_declarations;
+        while(decl != NULL) {
+            if(decl->kind == apigen_parser_fn_declaration) {
+                struct apigen_Function * const func = &out_document->functions[index];
+                *func = (struct apigen_Function) {
+                    .documentation = apigen_memory_arena_dupestr(out_document->type_pool.arena, decl->documentation),
+                    .name          = apigen_memory_arena_dupestr(out_document->type_pool.arena, decl->identifier),
+                    .type          = resolve_type(state, &out_document->type_pool, &resolve_queue, true, decl->identifier, &decl->type, NULL),
+                    // TODO: Implement/add calling convention support!
+                };
+                APIGEN_ASSERT(func->type->id == apigen_typeid_function);
+                if(func->type != NULL) {
+                    // TODO: Check viability?
+                } else {
+                    ok = false;
+                }
+
+                index += 1;
+            }
+            decl = decl->next;
+        }
+        APIGEN_ASSERT(index == out_document->function_count);
+        if(!ok) {
+            return false;
+        }
+    }
+
+    // Phase 8: Resolve constexpr variables
+    {
+        bool ok = true;
+        size_t index = 0;
+        struct apigen_ParserDeclaration const * decl = state->top_level_declarations;
+        while(decl != NULL) {
+            if(decl->kind == apigen_parser_constexpr_declaration) {
+                struct apigen_Constant * const global = &out_document->constants[index];
+                *global = (struct apigen_Constant) {
+                    .documentation = apigen_memory_arena_dupestr(out_document->type_pool.arena, decl->documentation),
+                    .name          = apigen_memory_arena_dupestr(out_document->type_pool.arena, decl->identifier),
+                    .type          = resolve_type(state, &out_document->type_pool, &resolve_queue, true, decl->identifier, &decl->type, NULL),
+                    .value         = decl->initial_value,
+                };
+
+                if(global->value.type == apigen_value_null) {
+                    emit_diagnostics(state, decl->location, apigen_error_constexpr_type_mismatch, global->name);
+                }
+
+                if(global->type != NULL) {
+                    // TODO: Check viability?
+
+                    
+
+                } else {
+                    ok = false;
+                }
+
+                index += 1;
+            }
+            decl = decl->next;
+        }
+        APIGEN_ASSERT(index == out_document->constant_count);
+        if(!ok) {
+            return false;
+        }
+    }
+
+    
+
+    // Phase 9: (MUST BE LAST!) Resolve and append all anonymous types that were found during resolution:
+    {
+        size_t additional_types = 0;
+        bool ok = true;
+        struct GlobalResolutionQueue ready_types = { 0 };
+        struct GlobalResolutionQueueNode * node;
+        while((node = gsq_pop(&resolve_queue)) != NULL)
+        {
+            // fprintf(stderr, "resolve anonymous type %s\n", node->dst_type->name);
+            bool const resolve_ok = resolve_unique_type(state, &out_document->type_pool, &resolve_queue, node->dst_type, node->src_type);
+            if(!resolve_ok) {
+                ok = false;
+            }
+            additional_types += 1;
+            gsq_push(&ready_types, node);
+        }
+        if(!ok) {
+            return false;
+        }
+
+        if(additional_types > 0) {
+            void * old_types = out_document->types;
+            size_t old_count = out_document->type_count;
+
+            out_document->type_count += additional_types;
+            out_document->types = apigen_memory_arena_alloc(state->ast_arena, out_document->type_count * sizeof(struct apigen_Type const *));
+
+            memcpy(out_document->types, old_types, old_count * sizeof(struct apigen_Type const *));
+
+            size_t i = old_count;
+            while((node = gsq_pop(&ready_types)) != NULL)
+            {
+                out_document->types[i] = node->dst_type;
+                i += 1;
+            }
+            APIGEN_ASSERT(i == out_document->type_count);
+        }
     }
 
     return true;

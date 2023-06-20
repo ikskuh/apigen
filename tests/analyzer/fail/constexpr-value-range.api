@@ -1,0 +1,5 @@
+// expected: 1014, 1014, 1014
+
+constexpr val1: u32 = -5;
+constexpr val3: i8 = 128;
+constexpr val4: i8 = -129;

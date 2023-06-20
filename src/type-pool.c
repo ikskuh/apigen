@@ -312,8 +312,8 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
             APIGEN_NOT_NULL(type1->extra);
             APIGEN_NOT_NULL(type2->extra);
 
-            struct apigen_Function const * const extra1 = type1->extra;
-            struct apigen_Function const * const extra2 = type2->extra;
+            struct apigen_FunctionType const * const extra1 = type1->extra;
+            struct apigen_FunctionType const * const extra2 = type2->extra;
             
             if(extra1->parameter_count != extra2->parameter_count) {
                 return false;
@@ -419,7 +419,7 @@ struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, str
             break;
 
         case apigen_typeid_function:
-            extra_size = sizeof(struct apigen_Function);
+            extra_size = sizeof(struct apigen_FunctionType);
             break;
          
         default:

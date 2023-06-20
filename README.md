@@ -55,6 +55,7 @@ fn apigen_memory_arena_deinit(arena: *apigen_MemoryArena) void;
 - [ ] Packed structs
 - [ ] Bitfield generation (Zig: `packed struct`, C: int + macro helpers, Rust: ???)
 - [ ] Namespaces
+- [ ] Calling convention support
 
 ## Building
 

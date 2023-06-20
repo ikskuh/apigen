@@ -1,0 +1,8 @@
+// expected: 1009
+
+type bad = struct {
+    a: u32,
+    b: struct {
+        f: nope,
+    },
+};
