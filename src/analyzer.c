@@ -747,7 +747,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
                 int64_t ival;
             } current_value = { .uval = 0 };
 
-            bool value_is_signed = (underlying_type != NULL) ? is_integer_unsigned(underlying_type->id) : false;
+            bool value_is_signed = (underlying_type != NULL) ? !is_integer_unsigned(underlying_type->id) : false;
 
             struct ValueRange actual_range = INIT_LIMIT_RANGE;
             

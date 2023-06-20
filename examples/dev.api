@@ -1,27 +1,16 @@
 
-
-type pax_font_range = struct {
-    start: u32,
-    end: u32,
-    bitmap: union {
-        mono: struct {
-            glyphs: [*]const u8,
-            width: u8,
-            height: u8,
-            bpp: u8,
-        },
-        @"var": struct {
-            glyphs: [*]const u8,
-            dims: *const u8,
-            height: u8,
-            bpp: u8,
-        },
-    },
-    hidden: enum { a, b, c },
+type pax_err_t = enum(i32) {
+    PAX_ERR_UNKNOWN = 1, // Unknown error.
+    PAX_OK = 0, // All is good.
+    PAX_ERR_NOBUF = -1, // Buffer pointer is null.
+    PAX_ERR_NOMEM = -2, // Out of memory.
+    PAX_ERR_PARAM = -3, // Invalid parameters.
+    PAX_ERR_INF = -4, // Infinite parameters.
+    PAX_ERR_BOUNDS = -5, // Out of bounds parameters.
+    PAX_ERR_UNDERFLOW = -6, // Matrix stack underflow.
+    PAX_ERR_NODATA = -7, // Out of data.
+    PAX_ERR_DECODE = -8, // Image decoding error.
+    PAX_ERR_UNSUPPORTED = -9, // Unsupported operation (or not compiled in).
+    PAX_ERR_CORRUPT = -10, // Corruption in buffer.
+    PAX_ERR_ENCODE = -11, // Image encoding error.
 };
-
-var   foo1: pax_font_range;
-const foo2: pax_font_range;
-
-constexpr foo1: u32 = 0;
-constexpr foo2: i8 = -200;

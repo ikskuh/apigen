@@ -174,6 +174,7 @@ const analyzer_test_files = [_][]const u8{
     "tests/analyzer/ok/builtin.api",
     "tests/analyzer/ok/constexpr-strings.api",
     "tests/analyzer/ok/constexpr-decl.api",
+    "tests/analyzer/ok/enum-negative-nums.api",
 
     // bad examples
     "tests/analyzer/fail/duplicate-symbol-uniq-triv.api",

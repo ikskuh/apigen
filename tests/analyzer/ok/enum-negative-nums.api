@@ -1,0 +1,18 @@
+
+
+
+type e = enum(i32) {
+    PAX_ERR_UNKNOWN = 1,
+    PAX_OK = 0,
+    PAX_ERR_NOBUF = -1,
+    PAX_ERR_NOMEM = -2,
+    PAX_ERR_PARAM = -3,
+    PAX_ERR_INF = -4,
+    PAX_ERR_BOUNDS = -5,
+    PAX_ERR_UNDERFLOW = -6,
+    PAX_ERR_NODATA = -7,
+    PAX_ERR_DECODE = -8,
+    PAX_ERR_UNSUPPORTED = -9,
+    PAX_ERR_CORRUPT = -10,
+    PAX_ERR_ENCODE = -11,
+};
