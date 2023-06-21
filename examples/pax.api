@@ -1,16 +1,16 @@
 // pax_types.h
 
-// #define M_PI 3.141592653589793
-// #define PAX_FONT_LOADER_VERSION 1
-// #define PAX_SHADER_VERSION 1
-// #define PAX_RENDERER_ID_SWR 0x00
+// constexpr M_PI: f32 = 3.141592653589793;
+constexpr PAX_FONT_LOADER_VERSION: u32 = 1;
+constexpr PAX_SHADER_VERSION: u32 = 1;
+constexpr PAX_RENDERER_ID_SWR: u32 = 0x00;
 
-// #define PAX_VERSION_STR "1.1.0"
-// #define PAX_VERSION_NUMBER 110
-// #define PAX_VERSION_IS_SNAPSHOT false
-// #define PAX_VERSION_MAJOR 1
-// #define PAX_VERSION_MINOR 1
-// #define PAX_VERSION_PATCH 0
+constexpr PAX_VERSION_STR: [*:0]const u8 = "1.1.0";
+constexpr PAX_VERSION_NUMBER: u32 = 110;
+// constexpr PAX_VERSION_IS_SNAPSHOT: bool = false;
+constexpr PAX_VERSION_MAJOR: u32 = 1;
+constexpr PAX_VERSION_MINOR: u32 = 1;
+constexpr PAX_VERSION_PATCH: u32 = 0;
 
 type pax_col_t = u32;
 
@@ -148,16 +148,20 @@ type pax_font_type = enum {
 
 // typedef enum   pax_font_type   pax_font_type_t;
 
-// // Promises that the shape will be fully opaque when drawn.
-// #define PAX_PROMISE_OPAQUE		0x01
-// // Promises that the shape will be fully transparent when drawn.
-// #define PAX_PROMISE_INVISIBLE	0x02
-// // Promises that the shape will be drawn as a cutout (either fully opaque or fully transparent for a given pixel).
-// #define PAX_PROMISE_CUTOUT		0x03
-// // Promises that the shader does not need the UVs.
-// #define PAX_PROMISE_IGNORE_UVS	0x04
-// // Promises that the shader ignores the existing color.
-// #define PAX_PROMISE_IGNORE_BASE	0x08
+/// Promises that the shape will be fully opaque when drawn.
+constexpr PAX_PROMISE_OPAQUE: u8 =      0x01;
+
+/// Promises that the shape will be fully transparent when drawn.
+constexpr PAX_PROMISE_INVISIBLE: u8 =   0x02;
+
+/// Promises that the shape will be drawn as a cutout (either fully opaque or fully transparent for a given pixel).
+constexpr PAX_PROMISE_CUTOUT: u8 =      0x03;
+
+/// Promises that the shader does not need the UVs.
+constexpr PAX_PROMISE_IGNORE_UVS: u8 =  0x04;
+
+/// Promises that the shader ignores the existing color.
+constexpr PAX_PROMISE_IGNORE_BASE: u8 = 0x08;
 
 // // Union for splitting ARGB.
 type pax_col_union = union {

@@ -234,7 +234,7 @@ static struct ValueRange get_integer_range(enum apigen_TypeId type)
     }
 }
 
-static bool is_integer_unsigned(enum apigen_TypeId type)
+bool apigen_type_is_unsigned_integer(enum apigen_TypeId type)
 {
     switch(type) {
         case apigen_typeid_uchar:       return true;
@@ -747,7 +747,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
                 int64_t ival;
             } current_value = { .uval = 0 };
 
-            bool value_is_signed = (underlying_type != NULL) ? !is_integer_unsigned(underlying_type->id) : false;
+            bool value_is_signed = (underlying_type != NULL) ? !apigen_type_is_unsigned_integer(underlying_type->id) : false;
 
             struct ValueRange actual_range = INIT_LIMIT_RANGE;
             
@@ -896,7 +896,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
 
         // {
         //     fprintf(stderr, "type: %s\n", apigen_type_str(underlying_type->id));
-        //     bool const value_is_signed = !is_integer_unsigned(underlying_type->id);
+        //     bool const value_is_signed = !apigen_type_is_unsigned_integer(underlying_type->id);
         //     for(size_t i = 0; i < items_count; i++)
         //     {
         //         if(value_is_signed) {
@@ -1066,8 +1066,16 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                         struct apigen_Type const * const resolved_type = resolve_type(state, &out_document->type_pool, &resolve_queue, emit_resolve_errors, decl->identifier, &decl->type, &non_resolve_error);
                         if(resolved_type != NULL) {
 
-                            if(apigen_register_type(&out_document->type_pool, resolved_type, decl->identifier)) {
-                                decl->associated_type = (struct apigen_Type *)resolved_type; // This is fine, we don't need the mutable reference here anyways
+                            struct apigen_Type * const alias_type = apigen_memory_arena_alloc(out_document->type_pool.arena, sizeof(struct apigen_Type));
+                            *alias_type = (struct apigen_Type) {
+                                .name = apigen_memory_arena_dupestr(out_document->type_pool.arena, decl->identifier),
+                                .extra = resolved_type,
+                                .is_anonymous = false,
+                                .id = apigen_typeid_alias,
+                            };
+
+                            if(apigen_register_type(&out_document->type_pool, alias_type, decl->identifier)) {
+                                decl->associated_type = (struct apigen_Type *)alias_type; // This is fine, we don't need the mutable reference here anyways
                                 resolved_count += 1;
                             }
                             else {
@@ -1272,8 +1280,6 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
             return false;
         }
     }
-
-    
 
     // Phase 9: (MUST BE LAST!) Resolve and append all anonymous types that were found during resolution:
     {

@@ -14,3 +14,8 @@ type pax_err_t = enum(i32) {
     PAX_ERR_CORRUPT = -10, // Corruption in buffer.
     PAX_ERR_ENCODE = -11, // Image encoding error.
 };
+
+
+var pax_last_error: pax_err_t;
+
+fn pax_desc_err(err_code: pax_err_t) ?[*:0]const c_char;

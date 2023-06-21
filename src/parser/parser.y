@@ -22,6 +22,9 @@ int yyerror(
     char const * err_string
 );
 
+#define strdup(_X) \
+    apigen_memory_arena_dupestr(parser_state->ast_arena, _X)
+
 %}
 
 %locations
@@ -92,12 +95,12 @@ declaration:
 |        KW_VAR       IDENTIFIER ':' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_var_declaration,       .documentation = NULL, .identifier = $2, .type = $4 }; }
 |        KW_TYPE      IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_type_declaration,      .documentation = NULL, .identifier = $2, .type = $4 }; }
 |        KW_CONSTEXPR IDENTIFIER ':' type '=' value ';'  { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_constexpr_declaration, .documentation = NULL, .identifier = $2, .type = $4, .initial_value = $6 }; }
-|        KW_FN        IDENTIFIER function_signature ';'  { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_type_declaration,      .documentation = NULL, .identifier = $2, .type = $3 }; }
+|        KW_FN        IDENTIFIER function_signature ';'  { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_fn_declaration,        .documentation = NULL, .identifier = $2, .type = $3 }; }
 |   docs KW_CONST     IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_const_declaration,     .documentation = $1,   .identifier = $3, .type = $5 }; }
 |   docs KW_VAR       IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_var_declaration,       .documentation = $1,   .identifier = $3, .type = $5 }; }
 |   docs KW_TYPE      IDENTIFIER '=' type ';'            { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_type_declaration,      .documentation = $1,   .identifier = $3, .type = $5 }; }
 |   docs KW_CONSTEXPR IDENTIFIER ':' type '=' value ';'  { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_constexpr_declaration, .documentation = $1,   .identifier = $3, .type = $5, .initial_value = $7 }; }
-|   docs KW_FN        IDENTIFIER function_signature ';'  { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_type_declaration,      .documentation = $1,   .identifier = $3, .type = $4 }; }
+|   docs KW_FN        IDENTIFIER function_signature ';'  { $$ = (struct apigen_ParserDeclaration) { .location = yyloc, .kind = apigen_parser_fn_declaration,        .documentation = $1,   .identifier = $3, .type = $4 }; }
 ;
 
 type:
