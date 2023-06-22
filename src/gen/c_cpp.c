@@ -18,6 +18,16 @@ static struct apigen_Type const * unalias(struct apigen_Type const * type)
 }
 
 
+static void render_value(struct apigen_Stream const stream, struct apigen_Value value)
+{
+  switch(value.type) {
+    case apigen_value_null: apigen_io_write(stream, "NULL", 4); break;
+    case apigen_value_sint: apigen_io_printf(stream, "%"PRIi64, value.value_sint); break;
+    case apigen_value_uint: apigen_io_printf(stream, "%"PRIu64, value.value_uint); break;
+    case apigen_value_str: apigen_io_printf(stream, "\"%s\"", value.value_str); break;
+  }
+} 
+
 static void flush_indent(struct apigen_Stream const stream, size_t indent)
 {
   for(size_t i = 0; i < indent; i++) {
@@ -135,7 +145,12 @@ static void render_identifier(struct apigen_Stream const stream, enum Identifier
 //   }
 // } 
 
-static void render_declaration(struct apigen_Stream const stream, char const * identifier, enum IdentifierTransform transform, struct apigen_Type const * const type, enum RenderMode render_mode, size_t indent);
+enum DeclarationKind {
+    DECL_REGULAR = 0,
+    DECL_CONST = 1,
+};
+
+static void render_declaration(struct apigen_Stream const stream, enum DeclarationKind kind, char const * identifier, enum IdentifierTransform transform, struct apigen_Type const * const type, enum RenderMode render_mode, size_t indent);
 
 static void render_type_prefix(struct apigen_Stream const stream, struct apigen_Type const * const type, enum RenderMode render_mode, size_t indent);
 static void render_type_suffix(struct apigen_Stream const stream, struct apigen_Type const * const type, enum RenderMode render_mode, size_t indent);
@@ -152,7 +167,7 @@ static void render_parameter_list(struct apigen_Stream const stream, struct apig
     }
     flush_indent(stream, indent + 1);
 
-    render_declaration(stream, param.name, ID_LOWERCASE, param.type, TYPE_REFERENCE, indent + 1);
+    render_declaration(stream, DECL_REGULAR, param.name, ID_LOWERCASE, param.type, TYPE_REFERENCE, indent + 1);
 
     if(i + 1 == func.parameter_count) {
       apigen_io_printf(stream, "\n");
@@ -312,7 +327,7 @@ static void render_type_prefix(struct apigen_Stream const stream, struct apigen_
                     render_docstring(stream, indent + 1, field.documentation);
                 }
                 flush_indent(stream, indent + 1);
-                render_declaration(stream, field.name, ID_LOWERCASE, field.type, TYPE_REFERENCE, indent + 1);
+                render_declaration(stream, DECL_REGULAR, field.name, ID_LOWERCASE, field.type, TYPE_REFERENCE, indent + 1);
                 apigen_io_printf(stream, ";\n");
             }
             flush_indent(stream, indent);
@@ -416,12 +431,15 @@ static void render_type_suffix(struct apigen_Stream const stream, struct apigen_
     }
 }
 
-static void render_declaration(struct apigen_Stream const stream, char const * identifier, enum IdentifierTransform transform, struct apigen_Type const * const type, enum RenderMode render_mode, size_t indent)
+static void render_declaration(struct apigen_Stream const stream, enum DeclarationKind kind, char const * identifier, enum IdentifierTransform transform, struct apigen_Type const * const type, enum RenderMode render_mode, size_t indent)
 {
     APIGEN_NOT_NULL(type);
 
     render_type_prefix(stream, type, render_mode, indent);
-    apigen_io_write(stream, " ", 1);
+    switch(kind) {
+        case DECL_REGULAR: apigen_io_write(stream, " ", 1); break;
+        case DECL_CONST:   apigen_io_write(stream, " const ", 7); break;
+    }
     render_identifier(stream, transform, identifier, true);  
     
     render_type_suffix(stream, type, render_mode, indent);
@@ -758,69 +776,62 @@ bool apigen_render_c(struct apigen_Stream const stream, struct apigen_MemoryAren
 
         apigen_io_printf(stream, "typedef ");
 
-        render_declaration(stream, type->name, ID_KEEP, type, TYPE_INSTANCE, 0);
+        render_declaration(stream, DECL_REGULAR, type->name, ID_KEEP, type, TYPE_INSTANCE, 0);
 
         apigen_io_printf(stream, ";\n\n");
     }
 
     apigen_io_printf(stream, "\n");
 
-    // for(size_t i = 0; i < document->variable_count; i++)
-    // {
-    //   struct apigen_Global const global = document->variables[i];
+    for(size_t i = 0; i < document->variable_count; i++)
+    {
+      struct apigen_Global const global = document->variables[i];
 
-    //   if(global.documentation != NULL) {
-    //     render_docstring(stream, 0, global.documentation);
-    //   }
+      if(global.documentation != NULL) {
+        render_docstring(stream, 0, global.documentation);
+      }
 
-    //   apigen_io_printf(stream, "pub extern %s ", global.is_const ? "const" : "var");
-    //   render_identifier(stream, global.name, true);
-    //   apigen_io_printf(stream, ": ");
-    //   render_type(stream, global.type, TYPE_REFERENCE, 0);
-    //   apigen_io_printf(stream, ";\n\n");
-    // }
+      apigen_io_write(stream, "extern ", 7);
 
-    // apigen_io_printf(stream, "\n");
+      render_declaration(stream, global.is_const ? DECL_CONST : DECL_REGULAR, global.name, ID_KEEP, global.type, TYPE_REFERENCE, 0);
 
-    // for(size_t i = 0; i < document->constant_count; i++)
-    // {
-    //   struct apigen_Constant const constant = document->constants[i];
+      apigen_io_printf(stream, ";\n\n");
+    }
 
+    apigen_io_printf(stream, "\n");
 
-    //   if(constant.documentation != NULL) {
-    //     render_docstring(stream, 0, constant.documentation);
-    //   }
+    for(size_t i = 0; i < document->constant_count; i++)
+    {
+      struct apigen_Constant const constant = document->constants[i];
 
-    //   apigen_io_printf(stream, "pub const ");
-    //   render_identifier(stream, constant.name, true);
-    //   apigen_io_printf(stream, ": ");
-    //   render_type(stream, constant.type, TYPE_REFERENCE, 0);
-    //   apigen_io_printf(stream, " = ");
-    //   render_value(stream, constant.value);
-    //   apigen_io_printf(stream, ";\n\n");
-    // }
+      if(constant.documentation != NULL) {
+        render_docstring(stream, 0, constant.documentation);
+      }
 
-    // apigen_io_printf(stream, "\n");
+      apigen_io_printf(stream, "#define ");
+      render_identifier(stream, ID_UPPERCASE, constant.name, true);
+      apigen_io_printf(stream, " ");
+      render_value(stream, constant.value);
+      apigen_io_printf(stream, " // ");
+      render_type_prefix(stream, constant.type, TYPE_REFERENCE, 0); // TODO: These might do line breaks when constants have weird types!
+      render_type_suffix(stream, constant.type, TYPE_REFERENCE, 0); // TODO: These might do line breaks when constants have weird types!
+      apigen_io_printf(stream, "\n\n");
+    }
 
-    // for(size_t i = 0; i < document->function_count; i++)
-    // {
-    //   struct apigen_Function func = document->functions[i];
+    apigen_io_printf(stream, "\n");
 
-    //   if(func.documentation != NULL) {
-    //     render_docstring(stream, 0, func.documentation);
-    //   }
+    for(size_t i = 0; i < document->function_count; i++)
+    {
+        struct apigen_Function func = document->functions[i];
 
-                // func = unalias(type)->extra;
+        if(func.documentation != NULL) {
+            render_docstring(stream, 0, func.documentation);
+        }
 
-                // render_type(stream, func->return_type, TYPE_REFERENCE, 0);
+        render_declaration(stream, DECL_REGULAR, func.name, ID_KEEP, func.type, TYPE_INSTANCE, 0);
 
-                // apigen_io_printf(stream, " (*");
-                // render_identifier(stream, ID_KEEP, type->name, true);
-                // apigen_io_printf(stream, ")");
-                // render_parameter_list(stream, *func, 0);
-
-    //   apigen_io_printf(stream, ";\n\n");
-    // }
+        apigen_io_printf(stream, ";\n\n");
+    }
 
     apigen_io_printf(stream, "%s",
         "\n"

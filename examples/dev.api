@@ -6,3 +6,10 @@ type forward_ref2 = forward_ref1;
 type forward_ref1 = forward_ref0;
 type forward_ref0 = builtin;
 type builtin = u32;
+
+const value1: u32;
+var   value2: u32;
+
+constexpr x: u32 = 10;
+
+fn square(val: u32) u32;
