@@ -1194,8 +1194,8 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                     .type          = resolve_type(state, &out_document->type_pool, &resolve_queue, true, decl->identifier, &decl->type, NULL),
                     // TODO: Implement/add calling convention support!
                 };
-                APIGEN_ASSERT(func->type->id == apigen_typeid_function);
                 if(func->type != NULL) {
+                    APIGEN_ASSERT(func->type->id == apigen_typeid_function);
                     // TODO: Check viability?
                 } else {
                     ok = false;

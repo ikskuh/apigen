@@ -71,24 +71,6 @@ type pax_err_t = enum(i32) {
 // #define PAX_RESET_TOP 0 // More verbose way of saying reset only the top matrix.
 // #define PAX_RESET_ALL 1 // More verbose way of saying reset the whole matrix stack.
 
-type pax_bufype = enum {
-    PAX_BUF_1_PAL = 0x20000001,
-    PAX_BUF_2_PAL = 0x20000002,
-    PAX_BUF_4_PAL = 0x20000004,
-    PAX_BUF_8_PAL = 0x20000008,
-    PAX_BUF_16_PAL = 0x20000010,
-    PAX_BUF_1_GREY = 0x10000001,
-    PAX_BUF_2_GREY = 0x10000002,
-    PAX_BUF_4_GREY = 0x10000004,
-    PAX_BUF_8_GREY = 0x10000008,
-    PAX_BUF_8_332RGB = 0x00033208,
-    PAX_BUF_16_565RGB = 0x00056510,
-    PAX_BUF_4_1111ARGB = 0x00111104,
-    PAX_BUF_8_2222ARGB = 0x00444408,
-    PAX_BUF_16_4444ARGB = 0x00444410,
-    PAX_BUF_32_8888ARGB = 0x00888820,
-};
-
 // Buffer orientation settings.
 type pax_orientation = enum {
     PAX_O_UPRIGHT, // No change in orientation.
@@ -231,7 +213,7 @@ type matrix_stack_2d = struct {
 // Stores pixel data and matrix information among other things.
 type pax_buf = struct {
     // Buffer type, color modes, etc.
-    @"type": pax_bufype,
+    @"type": pax_buftype,
     // Whether to perform free on the buffer on deinit.
     do_free: bool,
     // Whether to perform free on the palette on deinit.
@@ -424,7 +406,7 @@ fn pax_buf_get_widthf(buf: *const pax_buf) f32;
 
 fn pax_buf_get_heightf(buf: *const pax_buf) f32;
 
-fn pax_buf_get_type(buf: *const pax_buf) pax_bufype;
+fn pax_buf_get_type(buf: *const pax_buf) pax_buftype;
 
 fn pax_buf_get_pixels(buf: *const pax_buf) *const anyopaque;
 
