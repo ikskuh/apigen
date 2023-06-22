@@ -29,13 +29,6 @@ struct apigen_Type const apigen_type_c_longlong  = { .id = apigen_typeid_c_longl
 struct apigen_Type const apigen_type_f32         = { .id = apigen_typeid_f32 };
 struct apigen_Type const apigen_type_f64         = { .id = apigen_typeid_f64 };
 
-// static struct apigen_Type const * unalias(struct apigen_Type const * type)
-// {
-//     while(type->id == apigen_typeid_alias) {
-//         type = type->extra;
-//     }
-//     return type;
-// }
 
 /// Pool nodes contain a name <-> value association, stored
 /// in a linked list. 

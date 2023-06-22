@@ -110,6 +110,72 @@ pub fn build(b: *std.Build) void {
             test_step.dependOn(&run.step);
         }
 
+        const BackendLang = enum { c, @"c++", rust, zig, go };
+
+        const enabled_backends = [_]BackendLang{ .c, .zig };
+
+        for (backend_test_files) |test_file| {
+            for (enabled_backends) |backend| {
+                const target_lang_ext = switch (backend) {
+                    .c => ".c",
+                    .@"c++" => ".cpp",
+                    .rust => ".rs",
+                    .zig => ".zig",
+                    .go => ".go",
+                };
+
+                const basename = std.fs.path.basename(test_file);
+                const ext_len = std.fs.path.extension(basename);
+                const temp_obj_name = b.fmt("{s}-{s}", .{
+                    basename[0 .. basename.len - ext_len.len],
+                    @tagName(backend),
+                });
+                const generated_file_name = b.fmt("test-{s}{s}", .{ basename, target_lang_ext });
+
+                const run = b.addRunArtifact(exe);
+                run.addArg("--language");
+                run.addArg(@tagName(backend));
+                run.addArg("--output");
+                const generated_source = run.addOutputFileArg(generated_file_name);
+                run.addFileSourceArg(.{ .path = test_file });
+                run.addCheck(.{ .expect_term = .{ .Exited = 0 } });
+
+                switch (backend) {
+                    .c => {
+                        const obj_build = b.addObject(.{
+                            .name = temp_obj_name,
+                            .target = .{},
+                            .optimize = .Debug,
+                        });
+                        obj_build.linkLibC();
+
+                        obj_build.addCSourceFileSource(.{
+                            .source = generated_source,
+                            .args = &.{},
+                        });
+
+                        test_step.dependOn(&obj_build.step);
+                    },
+
+                    .zig => {
+                        const obj_build = b.addObject(.{
+                            .name = temp_obj_name,
+                            .root_source_file = generated_source,
+                            .target = .{},
+                            .optimize = .Debug,
+                        });
+                        obj_build.linkLibC();
+
+                        test_step.dependOn(&obj_build.step);
+                    },
+
+                    .@"c++" => @panic("c++ backend has no tests yet!"),
+                    .rust => @panic("rust backend has no tests yet!"),
+                    .go => @panic("go backend has no tests yet!"),
+                }
+            }
+        }
+
         {
             const test_runner = b.addExecutable(.{
                 .name = "apidef-arena-test",
@@ -158,8 +224,7 @@ const parser_test_files = [_][]const u8{
     "tests/parser/paxfuncs.api",
 } ++ general_examples;
 
-const analyzer_test_files = [_][]const u8{
-    // good examples
+const analyzer_positive_files = [_][]const u8{
     "tests/analyzer/ok/nested-types.api",
     "tests/analyzer/ok/forward-ref.api",
     "tests/analyzer/ok/arrays.api",
@@ -177,8 +242,9 @@ const analyzer_test_files = [_][]const u8{
     "tests/analyzer/ok/constexpr-strings.api",
     "tests/analyzer/ok/constexpr-decl.api",
     "tests/analyzer/ok/enum-negative-nums.api",
+};
 
-    // bad examples
+const analyzer_negative_files = [_][]const u8{
     "tests/analyzer/fail/duplicate-symbol-uniq-triv.api",
     "tests/analyzer/fail/duplicate-symbol-triv-uniq.api",
     "tests/analyzer/fail/constexpr-value-mismatch.api",
@@ -201,4 +267,8 @@ const analyzer_test_files = [_][]const u8{
     "tests/analyzer/fail/nested-struct-bad.api",
     "tests/analyzer/fail/union-empty.api",
     "tests/analyzer/fail/constexpr-type-unsupported.api",
-} ++ general_examples;
+};
+
+const analyzer_test_files = analyzer_positive_files ++ analyzer_negative_files ++ general_examples;
+
+const backend_test_files = analyzer_positive_files ++ general_examples;

@@ -1,21 +1,35 @@
 
-type pax_err_t = enum(i32) {
-    PAX_ERR_UNKNOWN = 1, // Unknown error.
-    PAX_OK = 0, // All is good.
-    PAX_ERR_NOBUF = -1, // Buffer pointer is null.
-    PAX_ERR_NOMEM = -2, // Out of memory.
-    PAX_ERR_PARAM = -3, // Invalid parameters.
-    PAX_ERR_INF = -4, // Infinite parameters.
-    PAX_ERR_BOUNDS = -5, // Out of bounds parameters.
-    PAX_ERR_UNDERFLOW = -6, // Matrix stack underflow.
-    PAX_ERR_NODATA = -7, // Out of data.
-    PAX_ERR_DECODE = -8, // Image decoding error.
-    PAX_ERR_UNSUPPORTED = -9, // Unsupported operation (or not compiled in).
-    PAX_ERR_CORRUPT = -10, // Corruption in buffer.
-    PAX_ERR_ENCODE = -11, // Image encoding error.
+type pax_err = enum(i32) {
+    /// Unknown error.
+    unknown = 1,
+    /// All is good.
+    ok = 0,
+    /// Buffer pointer is null.
+    nobuf = -1,
+    /// Out of memory.
+    nomem = -2,
+    /// Invalid parameters.
+    param = -3,
+    /// Infinite parameters.
+    inf = -4,
+    /// Out of bounds parameters.
+    bounds = -5,
+    /// Matrix stack underflow.
+    underflow = -6,
+    /// Out of data.
+    nodata = -7,
+    /// Image decoding error.
+    decode = -8,
+    /// Unsupported operation (or not compiled in).
+    unsupported = -9,
+    /// Corruption in buffer.
+    corrupt = -10, 
+    /// Image encoding error.
+    encode = -11, 
 };
 
+/// The error code of the last function that was invoked
+var pax_last_error: pax_err;
 
-var pax_last_error: pax_err_t;
-
-fn pax_desc_err(err_code: pax_err_t) ?[*:0]const c_char;
+/// Returns a human-readable description of an error code.
+fn pax_desc_err(err_code: pax_err) ?[*:0]const c_char;

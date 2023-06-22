@@ -1,7 +1,7 @@
 type apigen_TypeId = enum {
-    apigen_typeid_void,
-    apigen_typeid_anyopaque,
-    apigen_typeid_opaque,
+    void,
+    anyopaque,
+    @"opaque",
 
     // ...  
 };

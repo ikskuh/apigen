@@ -2,11 +2,21 @@
 
 #include <string.h>
 #include <inttypes.h>
+#include <ctype.h>
 
 enum RenderMode {
   TYPE_REFERENCE,
   TYPE_INSTANCE,
 };
+
+static struct apigen_Type const * unalias(struct apigen_Type const * type)
+{
+    while(type->id == apigen_typeid_alias) {
+        type = type->extra;
+    }
+    return type;
+}
+
 
 static void flush_indent(struct apigen_Stream const stream, size_t indent)
 {
@@ -41,48 +51,78 @@ static void render_docstring(struct apigen_Stream const stream, size_t indent, c
   }
 }
 
-static void render_identifier(struct apigen_Stream const stream, char const * identifier, bool exact_match)
+enum IdentifierTransform
 {
-  static char const * const reserved_identifiers[] = {
-    // true keywords
-    "alignas",    "alignof",   "auto",           "bool",          "break",      "case",
-    "char",       "const",     "constexpr",      "continue",      "default",    "do",
-    "double",     "else",      "enum",           "extern",        "false",      "float",
-    "for",        "goto",      "if",             "inline",        "int",        "long",
-    "nullptr",    "register",  "restrict",       "return",        "short",      "signed",
-    "sizeof",     "static",    "static_assert",  "struct",        "switch",     "thread_local",
-    "true",       "typedef",   "typeof",         "typeof_unqual", "union",      "unsigned",
-    "volatile",   "while",     "_Alignas",       "_Alignof",      "_Atomic",    "_BitInt",
-    "_Bool",      "_Complex",  "_Decimal128",    "_Decimal32",    "_Decimal64", "_Generic ",
-    "_Imaginary", "_Noreturn", "_Static_assert", "_Thread_local", "void",
+    ID_KEEP,
+    ID_UPPERCASE,
+    ID_LOWERCASE,
+};
 
-    // typical aliases:
-    "alignas",   "alignof",  "bool",          "complex",
-    "imaginary", "noreturn", "static_assert", "thread_local",
+static size_t len_min(size_t a, size_t b) {
+    return (a < b) ? a : b;
+}
 
-    NULL,   
-  };
+static void render_identifier(struct apigen_Stream const stream, enum IdentifierTransform transform, char const * identifier, bool exact_match)
+{
+    static char const * const reserved_identifiers[] = {
+        // true keywords
+        "alignas",    "alignof",   "auto",           "bool",          "break",      "case",
+        "char",       "const",     "constexpr",      "continue",      "default",    "do",
+        "double",     "else",      "enum",           "extern",        "false",      "float",
+        "for",        "goto",      "if",             "inline",        "int",        "long",
+        "nullptr",    "register",  "restrict",       "return",        "short",      "signed",
+        "sizeof",     "static",    "static_assert",  "struct",        "switch",     "thread_local",
+        "true",       "typedef",   "typeof",         "typeof_unqual", "union",      "unsigned",
+        "volatile",   "while",     "_Alignas",       "_Alignof",      "_Atomic",    "_BitInt",
+        "_Bool",      "_Complex",  "_Decimal128",    "_Decimal32",    "_Decimal64", "_Generic ",
+        "_Imaginary", "_Noreturn", "_Static_assert", "_Thread_local", "void",
 
-  bool reserved = false;
-  if((strlen(identifier) > 2) && (identifier[0] == '_') && ((identifier[1] == '_') || ((identifier[1] >= 'A') && (identifier[1] <= 'Z')))) {
-    reserved = true;
-  }
+        // typical aliases:
+        "alignas",   "alignof",  "bool",          "complex",
+        "imaginary", "noreturn", "static_assert", "thread_local",
 
-  for(size_t i = 0; reserved_identifiers[i]; i++) {
-    if(apigen_streq(identifier, reserved_identifiers[i])) {
-      reserved = true;
-      break;
+        NULL,   
+    };
+
+    bool reserved = false;
+    if((strlen(identifier) > 2) && (identifier[0] == '_') && ((identifier[1] == '_') || ((identifier[1] >= 'A') && (identifier[1] <= 'Z')))) {
+        reserved = true;
     }
-  }
-  if(reserved) {
-    if(exact_match) {
-      apigen_panic("used unrecoverable reserved identifier!");
+
+    for(size_t i = 0; !reserved && reserved_identifiers[i]; i++) {
+        if(apigen_streq(identifier, reserved_identifiers[i])) {
+            reserved = true;
+        }
     }
-    apigen_io_printf(stream, "%s_", identifier);
-  }
-  else {
-    apigen_io_printf(stream, "%s", identifier);
-  }
+
+    switch(transform) {
+        case ID_KEEP:
+            apigen_io_printf(stream, "%s", identifier);
+            break;
+        case ID_LOWERCASE:
+        case ID_UPPERCASE: {
+            char chunk[16];
+            while(*identifier) {
+                size_t len = len_min(sizeof(chunk), strlen(identifier));
+
+                for(size_t i = 0; i < len; i++) {
+                    chunk[i] = (transform == ID_LOWERCASE) ? tolower(identifier[i]) : toupper(identifier[i]);
+                }
+                apigen_io_write(stream, chunk, len);
+
+                identifier += len;
+            }
+
+            break;
+        }
+    }
+
+    if(reserved) {
+        if(exact_match) {
+            apigen_panic("used unrecoverable reserved identifier!");
+        }
+        apigen_io_printf(stream, "_", identifier);
+    }
 }
 
 // static void render_value(struct apigen_Stream const stream, struct apigen_Value value)
@@ -97,7 +137,7 @@ static void render_identifier(struct apigen_Stream const stream, char const * id
 
 static void render_type(struct apigen_Stream const stream, struct apigen_Type const * const type, enum RenderMode render_mode, size_t indent);
 
-static void render_func_signature(struct apigen_Stream const stream, struct apigen_FunctionType func, size_t indent)
+static void render_parameter_list(struct apigen_Stream const stream, struct apigen_FunctionType func, size_t indent)
 {
   apigen_io_printf(stream, "(\n"); 
   for(size_t i = 0; i < func.parameter_count; i++)
@@ -110,7 +150,7 @@ static void render_func_signature(struct apigen_Stream const stream, struct apig
     flush_indent(stream, indent + 1);
     render_type(stream, param.type, TYPE_REFERENCE, indent + 1);
     apigen_io_printf(stream, " ");
-    render_identifier(stream, param.name, false);
+    render_identifier(stream, ID_LOWERCASE, param.name, false);
 
     if(i + 1 == func.parameter_count) {
       apigen_io_printf(stream, "\n");
@@ -121,8 +161,6 @@ static void render_func_signature(struct apigen_Stream const stream, struct apig
   }
   flush_indent(stream, indent);
   apigen_io_printf(stream, ") "); 
-  
-  render_type(stream, func.return_type, TYPE_REFERENCE, indent);
 }
 
 static void render_type(struct apigen_Stream const stream, struct apigen_Type const * const type, enum RenderMode render_mode, size_t indent)
@@ -150,6 +188,7 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
 
     case apigen_typeid_void:        apigen_io_printf(stream, "void"); break;
     case apigen_typeid_anyopaque:   apigen_io_printf(stream, "void"); break;
+    case apigen_typeid_opaque:      apigen_io_printf(stream, "void"); break; // opaque types can be declared void and will get named void-pointers then
     case apigen_typeid_bool:        apigen_io_printf(stream, "bool"); break;
     case apigen_typeid_uchar:       apigen_io_printf(stream, "unsigned char"); break;
     case apigen_typeid_ichar:       apigen_io_printf(stream, "signed char"); break;
@@ -173,7 +212,7 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
     case apigen_typeid_c_short:     apigen_io_printf(stream, "short"); break;
     case apigen_typeid_c_int:       apigen_io_printf(stream, "int"); break;
     case apigen_typeid_c_long:      apigen_io_printf(stream, "long"); break;
-    case apigen_typeid_c_longlong:  apigen_io_printf(stream, "longlong"); break;
+    case apigen_typeid_c_longlong:  apigen_io_printf(stream, "long long"); break;
 
     case apigen_typeid_f32:         apigen_io_printf(stream, "float"); break;
     case apigen_typeid_f64:         apigen_io_printf(stream, "double"); break;
@@ -212,8 +251,10 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
     case apigen_typeid_function:
       func = type->extra;
 
-      apigen_io_printf(stream, "fn"); 
-      render_func_signature(stream, *func, indent);
+      render_type(stream, func->return_type, TYPE_REFERENCE, indent);
+
+      // apigen_io_printf(stream, "fn"); 
+      render_parameter_list(stream, *func, indent);
       
       break;
 
@@ -227,7 +268,9 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
           render_docstring(stream, indent + 1, item.documentation);
         }
         flush_indent(stream, indent + 1);
-        render_identifier(stream, item.name, true);
+        render_identifier(stream, ID_UPPERCASE, type->name, false);
+        apigen_io_write(stream, "_", 1);
+        render_identifier(stream, ID_UPPERCASE, item.name, false);
         apigen_io_printf(stream, " = ");
         if(apigen_type_is_unsigned_integer(enumeration->underlying_type->id)) {
           apigen_io_printf(stream, "%"PRIu64, item.uvalue);
@@ -257,7 +300,7 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
       else {
         apigen_io_printf(stream, "union ");
       }
-      render_identifier(stream, type->name, true);
+      render_identifier(stream, ID_KEEP, type->name, true);
       apigen_io_printf(stream, "{\n"); 
 
       for(size_t i = 0; i < uos->field_count; i++) {
@@ -269,16 +312,12 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
         flush_indent(stream, indent + 1);
         render_type(stream, field.type, TYPE_REFERENCE, indent + 1);
         apigen_io_printf(stream, " ");
-        render_identifier(stream, field.name, false);
+        render_identifier(stream, ID_LOWERCASE, field.name, false);
         apigen_io_printf(stream, ";\n");
       }
       flush_indent(stream, indent);
       apigen_io_printf(stream, "}", type->name); 
       break;
-     
-    case apigen_typeid_opaque:
-      apigen_io_printf(stream, "opaque{}");
-      break;    
       
     case apigen_typeid_alias:
       render_type(stream, type->extra, TYPE_REFERENCE, indent);
@@ -288,103 +327,422 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
   }
 }
 
+struct TypeDeclSpec
+{
+    struct apigen_Type const * type;
+    bool requires_forward_decl;
+    struct TypeOrderDependency * dependencies;
+};  
+
+enum DependencyType {
+    DEP_HARD = 0,
+    DEP_WEAK = 1,
+};
+
+struct TypeOrderDependency
+{
+    enum DependencyType weakness; // if weak, can be forward-declared, otherwise requries hard decl
+    struct apigen_Type const * type; 
+    struct TypeOrderDependency * next;
+};
+
+static void add_type_dependency(struct apigen_MemoryArena * const arena, struct TypeDeclSpec * const container, struct apigen_Type const * const type, enum DependencyType dep_type)
+{
+    { // deduplicate or reduce weakness if possible:
+
+        struct TypeOrderDependency * iter = container->dependencies;
+        while(iter != NULL) {
+            if(iter->type == type) {
+                if(iter->weakness > dep_type) {
+                    // reference isn't weak, ensure we actually have a non-weak dependency added:
+                    iter->weakness = dep_type;
+                }
+                return;
+            }
+            iter = iter->next;
+        }
+    }
+
+    struct TypeOrderDependency * const dep = apigen_memory_arena_alloc(arena, sizeof(struct TypeOrderDependency));
+    *dep = (struct TypeOrderDependency) {
+        .weakness = dep_type,
+        .type = type,
+        .next = container->dependencies,
+    };
+    container->dependencies = dep;
+}
+
+static void fetch_dependencies(struct apigen_MemoryArena * const arena, struct TypeDeclSpec * const container, struct apigen_Type const * const type, bool top_level, enum DependencyType dep_weakness)
+{
+  APIGEN_NOT_NULL(type);
+
+    if(!top_level) {
+        if(type == container->type) {
+            // circular dependency, we can safely ignore it
+            return;
+        }
+        // we can directly depend on named types
+        if(type->name != NULL) {
+            add_type_dependency(arena, container, type, dep_weakness);
+            return;
+        }
+    }
+
+    switch(type->id)
+    {
+        struct apigen_Pointer const * pointer;
+        struct apigen_Array const * array;
+        struct apigen_FunctionType const * func;
+
+        case apigen_typeid_void:        return;
+        case apigen_typeid_anyopaque:   return;
+        case apigen_typeid_bool:        return;
+        case apigen_typeid_uchar:       return;
+        case apigen_typeid_ichar:       return;
+        case apigen_typeid_char:        return;
+
+        case apigen_typeid_u8:          return;
+        case apigen_typeid_u16:         return;
+        case apigen_typeid_u32:         return;
+        case apigen_typeid_u64:         return;
+        case apigen_typeid_usize:       return;
+        case apigen_typeid_c_ushort:    return;
+        case apigen_typeid_c_uint:      return;
+        case apigen_typeid_c_ulong:     return;
+        case apigen_typeid_c_ulonglong: return;
+
+        case apigen_typeid_i8:          return;
+        case apigen_typeid_i16:         return;
+        case apigen_typeid_i32:         return;
+        case apigen_typeid_i64:         return;
+        case apigen_typeid_isize:       return;
+        case apigen_typeid_c_short:     return;
+        case apigen_typeid_c_int:       return;
+        case apigen_typeid_c_long:      return;
+        case apigen_typeid_c_longlong:  return;
+
+        case apigen_typeid_f32:         return;
+        case apigen_typeid_f64:         return;
+
+        case apigen_typeid_opaque:      apigen_panic("Cannot implicitly depend on a non-named opaque type");
+
+
+        case apigen_typeid_ptr_to_one:
+        case apigen_typeid_ptr_to_many:
+        case apigen_typeid_ptr_to_sentinelled_many:
+        case apigen_typeid_nullable_ptr_to_one:
+        case apigen_typeid_nullable_ptr_to_many:
+        case apigen_typeid_nullable_ptr_to_sentinelled_many:
+        case apigen_typeid_const_ptr_to_one:
+        case apigen_typeid_const_ptr_to_many:
+        case apigen_typeid_const_ptr_to_sentinelled_many:
+        case apigen_typeid_nullable_const_ptr_to_one:
+        case apigen_typeid_nullable_const_ptr_to_many:
+        case apigen_typeid_nullable_const_ptr_to_sentinelled_many:
+            pointer = type->extra;
+            fetch_dependencies(arena, container, pointer->underlying_type, false, DEP_WEAK);
+            break;
+
+        case apigen_typeid_array:
+            array = type->extra;
+            fetch_dependencies(arena, container, array->underlying_type, false, DEP_HARD);
+            break;
+
+        case apigen_typeid_function:
+            func = type->extra;
+
+            fetch_dependencies(arena, container, func->return_type, false, DEP_HARD);
+            for(size_t i = 0; i < func->parameter_count; i++)
+            {
+                struct apigen_NamedValue const param = func->parameters[i];
+                fetch_dependencies(arena, container, param.type, false, DEP_HARD);
+            }
+
+            break;
+
+        case apigen_typeid_enum: 
+            if(!top_level) {
+                apigen_panic("Cannot implicitly depend on a non-named enum type");
+            }
+            break;
+        case apigen_typeid_struct:
+        case apigen_typeid_union:
+            if(!top_level) {
+                if(type->id == apigen_typeid_struct) {
+                    apigen_panic("Cannot implicitly depend on a non-named struct type");
+                } else {
+                    apigen_panic("Cannot implicitly depend on a non-named union type");
+                }
+            }
+
+            struct apigen_UnionOrStruct const * const uos = type->extra;
+            for(size_t i = 0; i < uos->field_count; i++) {
+                struct apigen_NamedValue const field = uos->fields[i];
+                fetch_dependencies(arena, container, field.type, false, DEP_HARD);
+            }
+            break;
+
+        case apigen_typeid_alias:
+            fetch_dependencies(arena, container, type->extra, top_level, dep_weakness);
+            break;  
+        
+        case APIGEN_TYPEID_LIMIT: APIGEN_UNREACHABLE();
+    }
+}
+
+/// Rotates the given (inclusive) range downwards, and moves the element at `start_incl` to `end_incl`.
+static void rotate_decls_down(struct TypeDeclSpec * array, size_t start_incl, size_t end_incl)
+{
+    APIGEN_NOT_NULL(array);
+
+    struct TypeDeclSpec end = array[start_incl];
+    for(size_t i = start_incl; i < end_incl; i++)
+    {
+        array[i] = array[i + 1];
+    }
+    array[end_incl] = end;
+}
+
+/// Sorts the types from `document` in a way that all hard dependencies are resolved by declaration order,
+/// and determines if it's necessary to forward-declare the type as they are used in pointers or similar structures.
+static struct TypeDeclSpec * create_type_order_map(struct apigen_MemoryArena * const arena, struct apigen_Document const * const document)
+{
+    APIGEN_NOT_NULL(arena);
+    APIGEN_NOT_NULL(document);
+
+    size_t const array_len = document->type_count;
+    struct TypeDeclSpec * const array = apigen_memory_arena_alloc(arena, document->type_count * sizeof(struct TypeDeclSpec));
+
+    // Phase 1: collect all dependencies:
+    for(size_t i = 0; i < array_len; i++)
+    {
+        array[i] = (struct TypeDeclSpec) {
+            .type = document->types[i],
+            .requires_forward_decl = false,
+            .dependencies = NULL,
+        };
+        fetch_dependencies(arena, &array[i], array[i].type, true, DEP_HARD);
+    }
+
+    // Phase 2: resolve dependencies by hard deps
+    {
+        size_t index = 0;
+        while(index < array_len)
+        {
+            struct TypeDeclSpec const item = array[index];
+            size_t dep_first = (array_len - 1);
+            size_t dep_last  = 0;
+            {
+                struct TypeOrderDependency const * iter = item.dependencies;
+                while(iter != NULL)
+                {
+                    if(iter->weakness == DEP_HARD) {
+                        bool found = false;
+                        for(size_t j = 0; !found && (j < array_len); j++) {
+                            if(array[j].type == iter->type) {
+                                if(j < dep_first) dep_first = j;
+                                if(j > dep_last)  dep_last = j;
+                                found = true;
+                            }
+                        }
+                        APIGEN_ASSERT(found); // all dependencies MUST be resolvable, otherwise it's a bug in the analyzer phase
+                    }
+                    iter = iter->next;
+                }
+            }
+            APIGEN_ASSERT((dep_first >= 0) && (dep_first < array_len));
+            APIGEN_ASSERT((dep_last >= 0) && (dep_last < array_len));
+            bool const deps_ok = (item.dependencies == NULL) || (dep_last < index);
+            
+            fprintf(stderr, "[%3zu] range: [%3zu,%3zu] deps for %s are %s\n", index, dep_first, dep_last, item.type->name, deps_ok ? "ok" : "bad");
+
+            if(deps_ok == false)
+            {
+                // rotate ourselves beyond our  and try again later,
+                // next round uses the next type
+                rotate_decls_down(array, index, dep_last);
+            }
+            else {
+                // we're done, continue to the next array element
+                index += 1;
+            }
+        }
+    }
+
+    // Phase 3: mark everything left referenced as weak deps as forward required
+    for(size_t index = 0; index < array_len; index++)
+    {
+        struct TypeDeclSpec const item = array[index];
+
+        struct TypeOrderDependency const * iter = item.dependencies;
+        while(iter != NULL)
+        {
+            if(iter->weakness == DEP_WEAK) {
+                for(size_t j = index + 1; (j < array_len); j++) {
+                    if(array[j].type == iter->type) {
+                        array[j].requires_forward_decl = true;
+                    }
+                }
+            }
+            iter = iter->next;
+        }
+    }
+
+    // // print results:
+    // for(size_t i = 0; i < array_len; i++)
+    // {
+    //     struct TypeDeclSpec item = array[i];
+
+    //     fprintf(stderr, "dependencies for %s%s:\n", item.type->name, item.requires_forward_decl ? " (needs forward decl)" : "");
+    //     struct TypeOrderDependency const * iter = item.dependencies;
+    //     while(iter != NULL) {
+    //         fprintf(stderr, "\t- %s (%s)\n", iter->type->name, (iter->weakness == DEP_HARD) ? "hard" : "weak");
+    //         iter = iter->next;
+    //     }
+    //     fprintf(stderr, "\n");
+    // }
+
+    return array;
+}
 
 bool apigen_render_c(struct apigen_Stream const stream, struct apigen_MemoryArena * const arena, struct apigen_Diagnostics * const diagnostics, struct apigen_Document const * const document)
 {
-  APIGEN_NOT_NULL(arena);
-  APIGEN_NOT_NULL(diagnostics);
-  APIGEN_NOT_NULL(document);
+    APIGEN_NOT_NULL(arena);
+    APIGEN_NOT_NULL(diagnostics);
+    APIGEN_NOT_NULL(document);
 
-  apigen_io_printf(stream, "%s",
-    "#pragma once\n"
-    "\n"
-    "// THIS IS AUTOGENERATED CODE!\n"
-    "\n"
-    "#include <stdint.h>\n"
-    "#include <stddef.h>\n"
-    "#include <stdbool.h>\n"
-    "\n"
-    "#ifdef __cplusplus\n"
-    "extern \"C\" {\n"
-    "#endif\n"
-    "\n"
-  );
+    apigen_io_printf(stream, "%s",
+        "#pragma once\n"
+        "\n"
+        "// THIS IS AUTOGENERATED CODE!\n"
+        "\n"
+        "#include <stdint.h>\n"
+        "#include <stddef.h>\n"
+        "#include <stdbool.h>\n"
+        "\n"
+        "#ifdef __cplusplus\n"
+        "extern \"C\" {\n"
+        "#endif\n"
+        "\n"
+    );
 
-  for(size_t i = 0; i < document->type_count; i++)
-  {
-    struct apigen_Type const * const type = document->types[i];
+    struct TypeDeclSpec const * const ordered_types = create_type_order_map(arena, document);
 
-    apigen_io_printf(stream, "typedef ");
-    render_type(stream, type, TYPE_INSTANCE, 0);
-    apigen_io_printf(stream, " ");
-    render_identifier(stream, type->name, true);
-    apigen_io_printf(stream, ";\n\n");
-  }
-  
-  apigen_io_printf(stream, "\n");
+    // Phase 1: Render necessary forward declarations
 
-  // for(size_t i = 0; i < document->variable_count; i++)
-  // {
-  //   struct apigen_Global const global = document->variables[i];
-
-  //   if(global.documentation != NULL) {
-  //     render_docstring(stream, 0, global.documentation);
-  //   }
-
-  //   apigen_io_printf(stream, "pub extern %s ", global.is_const ? "const" : "var");
-  //   render_identifier(stream, global.name, true);
-  //   apigen_io_printf(stream, ": ");
-  //   render_type(stream, global.type, TYPE_REFERENCE, 0);
-  //   apigen_io_printf(stream, ";\n\n");
-  // }
-  
-  // apigen_io_printf(stream, "\n");
-
-  // for(size_t i = 0; i < document->constant_count; i++)
-  // {
-  //   struct apigen_Constant const constant = document->constants[i];
-
-
-  //   if(constant.documentation != NULL) {
-  //     render_docstring(stream, 0, constant.documentation);
-  //   }
-
-  //   apigen_io_printf(stream, "pub const ");
-  //   render_identifier(stream, constant.name, true);
-  //   apigen_io_printf(stream, ": ");
-  //   render_type(stream, constant.type, TYPE_REFERENCE, 0);
-  //   apigen_io_printf(stream, " = ");
-  //   render_value(stream, constant.value);
-  //   apigen_io_printf(stream, ";\n\n");
-  // }
-
-  // apigen_io_printf(stream, "\n");
-
-  // for(size_t i = 0; i < document->function_count; i++)
-  // {
-  //   struct apigen_Function func = document->functions[i];
-
-  //   if(func.documentation != NULL) {
-  //     render_docstring(stream, 0, func.documentation);
-  //   }
     
-  //   apigen_io_printf(stream, "pub extern fn ");
-  //   render_identifier(stream, func.name, true);
+    for(size_t i = 0; i < document->type_count; i++)
+    {
+        struct TypeDeclSpec decl = ordered_types[i];
+        struct apigen_Type const * const type = decl.type;
+        if(decl.requires_forward_decl) {
 
-  //   render_func_signature(stream, *((struct apigen_FunctionType const *)(func.type->extra)), 0);
+            switch(unalias(type)->id) {
+                case apigen_typeid_enum: apigen_io_write(stream, "enum ", 5); break;
+                case apigen_typeid_struct: apigen_io_write(stream, "struct ", 7); break;
+                case apigen_typeid_union: apigen_io_write(stream, "union ", 6); break;
+                default: APIGEN_UNREACHABLE();
+            }
+            render_identifier(stream, ID_KEEP, type->name, true);
+            apigen_io_printf(stream, ";\n\n");
+        }
+    }
 
-  //   apigen_io_printf(stream, ";\n\n");
-  // }
+    // Phase 2: Render concrete type declarations
+    for(size_t i = 0; i < document->type_count; i++)
+    {
+        struct TypeDeclSpec decl = ordered_types[i];
+        struct apigen_Type const * const type = decl.type;
 
-  apigen_io_printf(stream, "%s",
-    "\n"
-    "#ifdef __cplusplus\n"
-    "} // ends extern \"C\"\n"
-    "#endif\n"
-    "\n"
-  );
+        apigen_io_printf(stream, "typedef ");
 
-  return true;
+        switch(unalias(type)->id) {
+                struct apigen_FunctionType const * func;
+            case apigen_typeid_function:
+                func = unalias(type)->extra;
+
+                render_type(stream, func->return_type, TYPE_REFERENCE, 0);
+
+                apigen_io_printf(stream, " (*");
+                render_identifier(stream, ID_KEEP, type->name, true);
+                apigen_io_printf(stream, ")");
+                render_parameter_list(stream, *func, 0);
+
+                break;
+            
+            default:
+                render_type(stream, type, TYPE_INSTANCE, 0);
+                apigen_io_printf(stream, " ");
+                render_identifier(stream, ID_KEEP, type->name, true);
+                break;
+        }
+        apigen_io_printf(stream, ";\n\n");
+    }
+
+    apigen_io_printf(stream, "\n");
+
+    // for(size_t i = 0; i < document->variable_count; i++)
+    // {
+    //   struct apigen_Global const global = document->variables[i];
+
+    //   if(global.documentation != NULL) {
+    //     render_docstring(stream, 0, global.documentation);
+    //   }
+
+    //   apigen_io_printf(stream, "pub extern %s ", global.is_const ? "const" : "var");
+    //   render_identifier(stream, global.name, true);
+    //   apigen_io_printf(stream, ": ");
+    //   render_type(stream, global.type, TYPE_REFERENCE, 0);
+    //   apigen_io_printf(stream, ";\n\n");
+    // }
+
+    // apigen_io_printf(stream, "\n");
+
+    // for(size_t i = 0; i < document->constant_count; i++)
+    // {
+    //   struct apigen_Constant const constant = document->constants[i];
+
+
+    //   if(constant.documentation != NULL) {
+    //     render_docstring(stream, 0, constant.documentation);
+    //   }
+
+    //   apigen_io_printf(stream, "pub const ");
+    //   render_identifier(stream, constant.name, true);
+    //   apigen_io_printf(stream, ": ");
+    //   render_type(stream, constant.type, TYPE_REFERENCE, 0);
+    //   apigen_io_printf(stream, " = ");
+    //   render_value(stream, constant.value);
+    //   apigen_io_printf(stream, ";\n\n");
+    // }
+
+    // apigen_io_printf(stream, "\n");
+
+    // for(size_t i = 0; i < document->function_count; i++)
+    // {
+    //   struct apigen_Function func = document->functions[i];
+
+    //   if(func.documentation != NULL) {
+    //     render_docstring(stream, 0, func.documentation);
+    //   }
+
+    //   apigen_io_printf(stream, "pub extern fn ");
+    //   render_identifier(stream, func.name, true);
+
+    //   render_func_signature(stream, *((struct apigen_FunctionType const *)(func.type->extra)), 0);
+
+    //   apigen_io_printf(stream, ";\n\n");
+    // }
+
+    apigen_io_printf(stream, "%s",
+        "\n"
+        "#ifdef __cplusplus\n"
+        "} // ends extern \"C\"\n"
+        "#endif\n"
+        "\n"
+    );
+
+    return true;
 }
 
 
