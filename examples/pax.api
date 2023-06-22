@@ -168,32 +168,32 @@ type pax_col_union = union {
 // // Helper for color conversion.
 // // Used for both buffer type to ARGB and vice versa.
 // // Buffer argument is mostly used for images with palette.
-type pax_col_conv =  fn (buf: *const pax_buf, color: pax_col_t) pax_col_t;
+type pax_col_conv = *const fn (buf: *const pax_buf, color: pax_col_t) pax_col_t;
 
 // // Helper for setting pixels in drawing routines.
 // // Used to allow optimising away alpha in colors.
-type pax_setter =  fn (buf: *pax_buf, color: pax_col_t, x: c_int, y: c_int) void;
+type pax_setter = *const fn (buf: *pax_buf, color: pax_col_t, x: c_int, y: c_int) void;
 
 // // Helper for getting pixels in drawing routines.
 // // Used to allow optimising away inline branching.
-type pax_index_getter =  fn (buf: *const pax_buf, index: c_int) pax_col_t;
+type pax_index_getter = *const fn (buf: *const pax_buf, index: c_int) pax_col_t;
 
 // // Helper for setting pixels in drawing routines.
 // // Used to allow optimising away color conversion.
-type pax_index_setter =  fn (buf: *pax_buf, color: pax_col_t, index: c_int) void;
+type pax_index_setter = *const  fn (buf: *pax_buf, color: pax_col_t, index: c_int) void;
 
 // // Function pointer for shader promises.
 // // The promise function will provide a bitfield answer to contextual questions where false is the safe option.
-type pax_promise_func =  fn (buf: *pax_buf, tint: pax_col_t , args: ?*anyopaque) u64;
+type pax_promise_func = *const fn (buf: *pax_buf, tint: pax_col_t , args: ?*anyopaque) u64;
 
 // // Function pointer for shader callback.
 // // Tint is the color parameter to the pax_shade_xxx function.
-type pax_shader_func_v0 =  fn (tint: pax_col_t, x: c_int, y: c_int, u: f32, v: f32, args: ?*anyopaque) pax_col_t;
+type pax_shader_func_v0 = *const fn (tint: pax_col_t, x: c_int, y: c_int, u: f32, v: f32, args: ?*anyopaque) pax_col_t;
 
 // Function pointer for shader callback.
 // Tint is the color parameter to the pax_shade_xxx function.
 // It is assumed that color math is done by the shader based on the "existing" parameter.
-type pax_shader_func_v1 = fn (tint: pax_col_t, existing: pax_col_t, x: c_int, y: c_int, u: f32, v: f32, args: ?*anyopaque) pax_col_t;
+type pax_shader_func_v1 = *const fn (tint: pax_col_t, existing: pax_col_t, x: c_int, y: c_int, u: f32, v: f32, args: ?*anyopaque) pax_col_t;
 
 type matrix_2d = struct {
     // TODO: Implement union semantics 

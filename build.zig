@@ -139,6 +139,7 @@ pub fn build(b: *std.Build) void {
                 const generated_source = run.addOutputFileArg(generated_file_name);
                 run.addFileSourceArg(.{ .path = test_file });
                 run.addCheck(.{ .expect_term = .{ .Exited = 0 } });
+                run.addCheck(.{ .expect_stderr_exact = "" });
 
                 switch (backend) {
                     .c => {
@@ -196,8 +197,8 @@ pub fn build(b: *std.Build) void {
 }
 
 const general_examples = [_][]const u8{
-    // "examples/apigen.api",
-    // "examples/pax.api",
+    "examples/apigen.api",
+    "examples/pax.api",
 };
 
 const parser_test_files = [_][]const u8{

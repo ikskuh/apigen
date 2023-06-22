@@ -236,6 +236,8 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
 
 struct apigen_Type const * apigen_get_builtin_type(enum apigen_TypeId id);
 
+bool apigen_type_is_primitive_type(enum apigen_TypeId type);
+
 bool apigen_type_is_unsigned_integer(enum apigen_TypeId type);
 
 // documents:

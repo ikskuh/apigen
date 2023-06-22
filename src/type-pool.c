@@ -442,3 +442,63 @@ struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, str
     return &cache_entry->interned_type;
 }
 
+
+bool apigen_type_is_primitive_type(enum apigen_TypeId type)
+{
+    switch(type) {
+        case apigen_typeid_void:                                   return true;
+        case apigen_typeid_anyopaque:                              return true;
+        case apigen_typeid_bool:                                   return true;
+        case apigen_typeid_uchar:                                  return true;
+        case apigen_typeid_ichar:                                  return true;
+        case apigen_typeid_char:                                   return true;
+
+        case apigen_typeid_u8:                                     return true;
+        case apigen_typeid_u16:                                    return true;
+        case apigen_typeid_u32:                                    return true;
+        case apigen_typeid_u64:                                    return true;
+        case apigen_typeid_usize:                                  return true;
+        case apigen_typeid_c_ushort:                               return true;
+        case apigen_typeid_c_uint:                                 return true;
+        case apigen_typeid_c_ulong:                                return true;
+        case apigen_typeid_c_ulonglong:                            return true;
+
+        case apigen_typeid_i8:                                     return true;
+        case apigen_typeid_i16:                                    return true;
+        case apigen_typeid_i32:                                    return true;
+        case apigen_typeid_i64:                                    return true;
+        case apigen_typeid_isize:                                  return true;
+        case apigen_typeid_c_short:                                return true;
+        case apigen_typeid_c_int:                                  return true;
+        case apigen_typeid_c_long:                                 return true;
+        case apigen_typeid_c_longlong:                             return true;
+
+        case apigen_typeid_f32:                                    return true;
+        case apigen_typeid_f64:                                    return true;
+
+        case apigen_typeid_ptr_to_one:                             return true;
+        case apigen_typeid_ptr_to_many:                            return true;
+        case apigen_typeid_ptr_to_sentinelled_many:                return true;
+        case apigen_typeid_nullable_ptr_to_one:                    return true;
+        case apigen_typeid_nullable_ptr_to_many:                   return true;
+        case apigen_typeid_nullable_ptr_to_sentinelled_many:       return true;
+        case apigen_typeid_const_ptr_to_one:                       return true;
+        case apigen_typeid_const_ptr_to_many:                      return true;
+        case apigen_typeid_const_ptr_to_sentinelled_many:          return true;
+        case apigen_typeid_nullable_const_ptr_to_one:              return true;
+        case apigen_typeid_nullable_const_ptr_to_many:             return true;
+        case apigen_typeid_nullable_const_ptr_to_sentinelled_many: return true;
+        
+        case apigen_typeid_array:                                  return true;
+
+        case apigen_typeid_opaque:                                 return false;
+        case apigen_typeid_enum:                                   return false;
+        case apigen_typeid_struct:                                 return false;
+        case apigen_typeid_union:                                  return false;
+        case apigen_typeid_function:                               return false;
+
+        case apigen_typeid_alias:                                  return false;
+
+        case APIGEN_TYPEID_LIMIT:                                  APIGEN_UNREACHABLE();
+    }
+}

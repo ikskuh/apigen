@@ -1,35 +1,8 @@
 
-type pax_err = enum(i32) {
-    /// Unknown error.
-    unknown = 1,
-    /// All is good.
-    ok = 0,
-    /// Buffer pointer is null.
-    nobuf = -1,
-    /// Out of memory.
-    nomem = -2,
-    /// Invalid parameters.
-    param = -3,
-    /// Infinite parameters.
-    inf = -4,
-    /// Out of bounds parameters.
-    bounds = -5,
-    /// Matrix stack underflow.
-    underflow = -6,
-    /// Out of data.
-    nodata = -7,
-    /// Image decoding error.
-    decode = -8,
-    /// Unsupported operation (or not compiled in).
-    unsupported = -9,
-    /// Corruption in buffer.
-    corrupt = -10, 
-    /// Image encoding error.
-    encode = -11, 
-};
 
-/// The error code of the last function that was invoked
-var pax_last_error: pax_err;
 
-/// Returns a human-readable description of an error code.
-fn pax_desc_err(err_code: pax_err) ?[*:0]const c_char;
+
+type forward_ref2 = forward_ref1;
+type forward_ref1 = forward_ref0;
+type forward_ref0 = builtin;
+type builtin = u32;
