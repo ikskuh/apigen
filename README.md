@@ -131,12 +131,12 @@ The following table contains a short description of all available type construct
 | `u16`           | unsigned int, 16 bit                                                  | 0 … 2¹⁶-1            |
 | `u32`           | unsigned int, 32 bit                                                  | 0 … 2³²-1            |
 | `u64`           | unsigned int, 64 bit                                                  | 0 … 2⁶⁴-1            |
-| `usize`         | unsigned int, pointer width                                           | *platform dependent* |
-| `i8`            | signed int, 8 bit                                                     | -2⁷  … 2⁷-1          |
+| `usize`         | unsigned int, pointer width                                           | _platform dependent_ |
+| `i8`            | signed int, 8 bit                                                     | -2⁷ … 2⁷-1           |
 | `i16`           | signed int, 16 bit                                                    | -2¹⁵ … 2¹⁵-1         |
 | `i32`           | signed int, 32 bit                                                    | -2³¹ … 2³¹-1         |
 | `i64`           | signed int, 64 bit                                                    | -2⁶³ … 2⁶³-1         |
-| `isize`         | signed int, pointer width                                             | *platform dependent* |
+| `isize`         | signed int, pointer width                                             | _platform dependent_ |
 | `f32`           | The `binary32` floating point type defined by IEEE 754                |                      |
 | `f64`           | The `binary64` floating point type defined by IEEE 754                |                      |
 | `*T`            | non-nullable pointer to a single mutable `T`                          |                      |
@@ -152,23 +152,23 @@ The following table contains a short description of all available type construct
 | `?[*]const T`   | nullable pointer to many constant `T`s                                |                      |
 | `?[*:N]const T` | nullable pointer to many constant `T`s terminated by `N`              |                      |
 | `[N]T`          | array of `N` consecutive `T`s.                                        |                      |
-| `struct { … }`  | A composite structure of several types. *See below*                   |                      |
-| `union { … }`   | An alias structure of several types. *See below*                      |                      |
-| `enum { … }`    | An automatically typed list of named values. *See below*              |                      |
-| `enum(T) { … }` | A list of named values of type `T`. *See below*                       |                      |
-| `opaque { }`    | A specific type defined elsewhere, but can be pointed to. *See below* |                      |
-| `anyopaque`     | A unspecified type defined  elsewhere, but can be pointed to.         |                      |
+| `struct { … }`  | A composite structure of several types. _See below_                   |                      |
+| `union { … }`   | An alias structure of several types. _See below_                      |                      |
+| `enum { … }`    | An automatically typed list of named values. _See below_              |                      |
+| `enum(T) { … }` | A list of named values of type `T`. _See below_                       |                      |
+| `opaque { }`    | A specific type defined elsewhere, but can be pointed to. _See below_ |                      |
+| `anyopaque`     | A unspecified type defined elsewhere, but can be pointed to.          |                      |
 | `c_char`        | The equivalent to the C type `char`                                   | 0 … 127              |
 | `c_uchar`       | The equivalent to the C type `unsigned char`                          | 0 … 255              |
 | `c_ichar`       | The equivalent to the C type `signed char`                            | -128 … 127           |
-| `c_short`       | The equivalent to the C type `short`                                  | *platform dependent* |
-| `c_ushort`      | The equivalent to the C type `unsigned short`                         | *platform dependent* |
-| `c_int`         | The equivalent to the C type `int`                                    | *platform dependent* |
-| `c_uint`        | The equivalent to the C type `unsigned int`                           | *platform dependent* |
-| `c_long`        | The equivalent to the C type `long`                                   | *platform dependent* |
-| `c_ulong`       | The equivalent to the C type `unsigned long`                          | *platform dependent* |
-| `c_longlong`    | The equivalent to the C type `long long`                              | *platform dependent* |
-| `c_ulonglong`   | The equivalent to the C type `unsigned long long`                     | *platform dependent* |
+| `c_short`       | The equivalent to the C type `short`                                  | _platform dependent_ |
+| `c_ushort`      | The equivalent to the C type `unsigned short`                         | _platform dependent_ |
+| `c_int`         | The equivalent to the C type `int`                                    | _platform dependent_ |
+| `c_uint`        | The equivalent to the C type `unsigned int`                           | _platform dependent_ |
+| `c_long`        | The equivalent to the C type `long`                                   | _platform dependent_ |
+| `c_ulong`       | The equivalent to the C type `unsigned long`                          | _platform dependent_ |
+| `c_longlong`    | The equivalent to the C type `long long`                              | _platform dependent_ |
+| `c_ulonglong`   | The equivalent to the C type `unsigned long long`                     | _platform dependent_ |
 
 #### `struct { … }`
 
@@ -267,4 +267,3 @@ This reason is quite simple: It allows other projects to vendor a distribution
 of `apigen` without the Zig build stuff. The whole thing is designed to be compiled with a `gcc src/*.c` invocation after the parser and lexer have been generated.
 
 This makes it really easy to vendor everything.
-
