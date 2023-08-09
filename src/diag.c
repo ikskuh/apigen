@@ -10,7 +10,7 @@ struct apigen_DiagnosticItem
 
     char const * message;
     char const * file_name;
-    uint32_t line, column;
+    uint32_t     line, column;
 };
 
 static bool is_in_range(uint32_t lo, uint32_t hi, uint32_t val)
@@ -20,13 +20,13 @@ static bool is_in_range(uint32_t lo, uint32_t hi, uint32_t val)
 
 static uint32_t classify_diag_code(enum apigen_DiagnosticCode code)
 {
-    if(is_in_range(APIGEN_DIAGNOSTIC_FIRST_ERR, APIGEN_DIAGNOSTIC_LAST_ERR, code)) {
+    if (is_in_range(APIGEN_DIAGNOSTIC_FIRST_ERR, APIGEN_DIAGNOSTIC_LAST_ERR, code)) {
         return APIGEN_DIAGNOSTIC_FLAG_ERROR;
     }
-    else if(is_in_range(APIGEN_DIAGNOSTIC_FIRST_WARN, APIGEN_DIAGNOSTIC_LAST_WARN, code)) {
+    else if (is_in_range(APIGEN_DIAGNOSTIC_FIRST_WARN, APIGEN_DIAGNOSTIC_LAST_WARN, code)) {
         return APIGEN_DIAGNOSTIC_FLAG_WARN;
     }
-    else if(is_in_range(APIGEN_DIAGNOSTIC_FIRST_NOTE, APIGEN_DIAGNOSTIC_LAST_NOTE, code)) {
+    else if (is_in_range(APIGEN_DIAGNOSTIC_FIRST_NOTE, APIGEN_DIAGNOSTIC_LAST_NOTE, code)) {
         return APIGEN_DIAGNOSTIC_FLAG_NOTE;
     }
     else {
@@ -36,25 +36,22 @@ static uint32_t classify_diag_code(enum apigen_DiagnosticCode code)
 
 static char const * get_diag_code_fmt_string(enum apigen_DiagnosticCode code)
 {
-    switch(code) {
-#define APIGEN_TEMP_MACRO(_Symbol, _Id, _Format) case _Symbol:  return _Format;
-APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(APIGEN_TEMP_MACRO)
-#undef  APIGEN_TEMP_MACRO
+    switch (code) {
+#define APIGEN_TEMP_MACRO(_Symbol, _Id, _Format) \
+    case _Symbol: return _Format;
+        APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(APIGEN_TEMP_MACRO)
+#undef APIGEN_TEMP_MACRO
     }
     apigen_panic("Error code was not added to format list");
 }
 
-
-
-
 void apigen_diagnostics_emit(
-        struct apigen_Diagnostics * diags,
-        char const * file_name,
-        uint32_t line_number,
-        uint32_t column_number,
-        enum apigen_DiagnosticCode code,
-        ...
-    )
+    struct apigen_Diagnostics * diags,
+    char const *                file_name,
+    uint32_t                    line_number,
+    uint32_t                    column_number,
+    enum apigen_DiagnosticCode  code,
+    ...)
 {
     va_list list;
     va_start(list, code);
@@ -63,13 +60,12 @@ void apigen_diagnostics_emit(
 }
 
 void apigen_diagnostics_vemit(
-        struct apigen_Diagnostics * diags,
-        char const * file_name,
-        uint32_t line_number,
-        uint32_t column_number,
-        enum apigen_DiagnosticCode code,
-        va_list src_list
-    )
+    struct apigen_Diagnostics * diags,
+    char const *                file_name,
+    uint32_t                    line_number,
+    uint32_t                    column_number,
+    enum apigen_DiagnosticCode  code,
+    va_list                     src_list)
 {
     APIGEN_NOT_NULL(diags);
     APIGEN_NOT_NULL(diags->arena);
@@ -103,15 +99,15 @@ void apigen_diagnostics_vemit(
     }
 
     struct apigen_DiagnosticItem * const item = apigen_memory_arena_alloc(diags->arena, sizeof(struct apigen_DiagnosticItem));
-    *item = (struct apigen_DiagnosticItem) {
-        .next = diags->items,
+    *item                                     = (struct apigen_DiagnosticItem){
+                                            .next = diags->items,
 
-        .code = code,
-        .message = formatted_message,
+                                            .code    = code,
+                                            .message = formatted_message,
 
-        .file_name = apigen_memory_arena_dupestr(diags->arena, file_name),
-        .line = line_number,
-        .column = column_number,
+                                            .file_name = apigen_memory_arena_dupestr(diags->arena, file_name),
+                                            .line      = line_number,
+                                            .column    = column_number,
     };
 
     diags->items = item;
@@ -125,13 +121,12 @@ void apigen_diagnostics_render(struct apigen_Diagnostics const * diags, struct a
     APIGEN_NOT_NULL(diags);
 
     struct apigen_DiagnosticItem const * iter = diags->items;
-    while(iter)
-    {
+    while (iter) {
         char const * type_kind = NULL;
-        switch(classify_diag_code(iter->code)) {
+        switch (classify_diag_code(iter->code)) {
             case APIGEN_DIAGNOSTIC_FLAG_ERROR: type_kind = "error"; break;
-            case APIGEN_DIAGNOSTIC_FLAG_WARN:  type_kind = "warn";  break;
-            case APIGEN_DIAGNOSTIC_FLAG_NOTE:  type_kind = "note";  break;
+            case APIGEN_DIAGNOSTIC_FLAG_WARN: type_kind = "warn"; break;
+            case APIGEN_DIAGNOSTIC_FLAG_NOTE: type_kind = "note"; break;
             default: apigen_panic("unhandled diagnostic code");
         }
         APIGEN_ASSERT(type_kind != NULL);
@@ -144,26 +139,23 @@ void apigen_diagnostics_render(struct apigen_Diagnostics const * diags, struct a
             iter->column + 1,
             type_kind,
             (int)iter->code,
-            iter->message
-        );
+            iter->message);
         iter = iter->next;
     }
 }
-
 
 bool apigen_diagnostics_remove_one(struct apigen_Diagnostics * diags, enum apigen_DiagnosticCode code)
 {
     APIGEN_NOT_NULL(diags);
 
     struct apigen_DiagnosticItem * previous = NULL;
-    struct apigen_DiagnosticItem * iter = diags->items;
-    while(iter)
-    {
-        if(iter->code == code) {
-            if(previous != NULL) {
+    struct apigen_DiagnosticItem * iter     = diags->items;
+    while (iter) {
+        if (iter->code == code) {
+            if (previous != NULL) {
                 previous->next = iter->next;
             }
-            if(iter == diags->items) {
+            if (iter == diags->items) {
                 diags->items = iter->next;
             }
             iter->next = NULL;
@@ -171,7 +163,7 @@ bool apigen_diagnostics_remove_one(struct apigen_Diagnostics * diags, enum apige
         }
         else {
             previous = iter;
-            iter = iter->next;
+            iter     = iter->next;
         }
     }
     return false;
@@ -188,7 +180,7 @@ void apigen_diagnostics_init(struct apigen_Diagnostics * diags, struct apigen_Me
 {
     APIGEN_NOT_NULL(diags);
     APIGEN_NOT_NULL(arena);
-    *diags = (struct apigen_Diagnostics) {
+    *diags = (struct apigen_Diagnostics){
         .arena = arena,
     };
 }
