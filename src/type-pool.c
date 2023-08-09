@@ -31,7 +31,7 @@ struct apigen_Type const apigen_type_f64         = { .id = apigen_typeid_f64 };
 
 
 /// Pool nodes contain a name <-> value association, stored
-/// in a linked list. 
+/// in a linked list.
 struct apigen_TypePoolNamedType
 {
     struct apigen_TypePoolNamedType * next;
@@ -40,7 +40,7 @@ struct apigen_TypePoolNamedType
     struct apigen_Type const * type;
 };
 
-/// The cache contains a linked list of just 
+/// The cache contains a linked list of just
 /// "type values". This is used for deduplicating types.
 struct apigen_TypePoolCache
 {
@@ -91,7 +91,7 @@ struct apigen_Type const * apigen_lookup_type(struct apigen_TypePool const * poo
             }
             iter = iter->next;
         }
-    }    
+    }
 
     return NULL;
 }
@@ -102,7 +102,7 @@ bool apigen_register_type(struct apigen_TypePool * pool, struct apigen_Type cons
     APIGEN_NOT_NULL(type);
 
     char const * const type_name = (name_hint != NULL) ? name_hint : type->name;
-    
+
     APIGEN_ASSERT(type_name != NULL);
 
     if(apigen_lookup_type(pool, type_name) != NULL) {
@@ -211,17 +211,17 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
 {
     APIGEN_NOT_NULL(type1);
     APIGEN_NOT_NULL(type2);
-    
+
     if(type1 == type2) {
         return true;
     }
-    
+
     if(type1->id != type2->id) {
         return false;
     }
 
     APIGEN_ASSERT(!apigen_is_type_builtin(type1->id)); // Builtins must be pointer-equal
-    
+
     if(apigen_is_type_unique(type1->id)) {
         // Unique types are pointer-equal, no deep equality
         return false;
@@ -230,7 +230,7 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
     switch(type1->id)
     {
         case apigen_typeid_alias:       __builtin_unreachable();
-        
+
         case apigen_typeid_void:        __builtin_unreachable();
         case apigen_typeid_anyopaque:   __builtin_unreachable();
         case apigen_typeid_bool:        __builtin_unreachable();
@@ -290,7 +290,7 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
             }
 
             return true;
-        }   
+        }
 
         case apigen_typeid_array: {
             APIGEN_NOT_NULL(type1->extra);
@@ -298,7 +298,7 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
 
             struct apigen_Array const * const extra1 = type1->extra;
             struct apigen_Array const * const extra2 = type2->extra;
-            
+
             if(!apigen_type_eql(extra1->underlying_type, extra2->underlying_type)) {
                 return false;
             }
@@ -316,7 +316,7 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
 
             struct apigen_FunctionType const * const extra1 = type1->extra;
             struct apigen_FunctionType const * const extra2 = type2->extra;
-            
+
             if(extra1->parameter_count != extra2->parameter_count) {
                 return false;
             }
@@ -337,11 +337,11 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
                 if(doc1 != doc2) {
                     return false;
                 }
-                
+
                 if(doc1 && !apigen_streq(extra1->parameters[i].documentation, extra2->parameters[i].documentation)) {
                     return false;
                 }
-                
+
                 if(!apigen_type_eql(extra1->parameters[i].type, extra2->parameters[i].type)) {
                     return false;
                 }
@@ -352,7 +352,7 @@ bool apigen_type_eql(struct apigen_Type const * type1, struct apigen_Type const 
 
 
         case APIGEN_TYPEID_LIMIT:       __builtin_unreachable();
-    }    
+    }
 }
 
 struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, struct apigen_Type const * unchecked_type)
@@ -364,7 +364,7 @@ struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, str
         // unique types are unique, they cannot be interned
         return unchecked_type;
     }
-    
+
     if(apigen_is_type_builtin(unchecked_type->id)) {
         // builtin types are assumed to be static, no need for interning
         APIGEN_ASSERT(apigen_get_builtin_type(unchecked_type->id) == unchecked_type);
@@ -384,7 +384,7 @@ struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, str
     cache_entry = apigen_memory_arena_alloc(pool->arena, sizeof(struct apigen_TypePoolCache));
     *cache_entry = (struct apigen_TypePoolCache) {
         .interned_type = *unchecked_type,
-        .next = pool->cache,        
+        .next = pool->cache,
     };
 
     // duplicate extra-storage
@@ -423,7 +423,7 @@ struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, str
         case apigen_typeid_function:
             extra_size = sizeof(struct apigen_FunctionType);
             break;
-         
+
         default:
             extra_size = 0;
             break;
@@ -488,7 +488,7 @@ bool apigen_type_is_primitive_type(enum apigen_TypeId type)
         case apigen_typeid_nullable_const_ptr_to_one:              return true;
         case apigen_typeid_nullable_const_ptr_to_many:             return true;
         case apigen_typeid_nullable_const_ptr_to_sentinelled_many: return true;
-        
+
         case apigen_typeid_array:                                  return true;
 
         case apigen_typeid_opaque:                                 return false;

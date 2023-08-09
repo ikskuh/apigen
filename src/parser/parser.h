@@ -1,13 +1,14 @@
 #pragma once
 
 #include "apigen.h"
- 
+#include <stdint.h>
+
 struct apigen_ParserLocation
 {
-  int first_line;
-  int first_column;
-  int last_line;
-  int last_column;
+  uint32_t first_line;
+  uint32_t first_column;
+  uint32_t last_line;
+  uint32_t last_column;
 };
 
 #define APIGEN_VALUE_NULL ((struct apigen_Value){ .type = apigen_value_null })
@@ -53,7 +54,7 @@ struct apigen_ParserType {
             struct apigen_ParserField * parameters;
         } function_data;
     };
-};  
+};
 
 struct apigen_ParserEnumItem {
     char const * documentation;

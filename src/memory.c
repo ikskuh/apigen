@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdalign.h>
 
-static size_t maxSize(size_t a, size_t b) 
+static size_t maxSize(size_t a, size_t b)
 {
     return (a>b) ? a : b;
 }
@@ -37,8 +37,8 @@ struct apigen_MemoryArenaChunk
     struct apigen_MemoryArenaChunk * next;
 };
 
-void * (* apigen_memory_alloc_backend)(size_t) = malloc;
-void (*apigen_memory_free_backend)(void*) = free;
+static void * (* apigen_memory_alloc_backend)(size_t) = malloc;
+static void (*apigen_memory_free_backend)(void*) = free;
 
 void * apigen_alloc(size_t size)
 {
@@ -87,7 +87,7 @@ void * apigen_memory_arena_alloc(struct apigen_MemoryArena * arena, size_t size)
 
     if(chunk == NULL || chunk->size < aligned_size) {
         size_t const chunk_aligned_size = alignSizeForward(sizeof(struct apigen_MemoryArenaChunk));
-        
+
         size_t const new_chunk_size = maxSize(arena->chunk_size, aligned_size);
 
         APIGEN_ASSERT(new_chunk_size >= aligned_size);

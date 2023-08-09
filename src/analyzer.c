@@ -84,7 +84,7 @@ static bool is_integer_type(struct apigen_Type type)
         case apigen_typeid_c_long:
         case apigen_typeid_c_longlong:
             return true;
-        default: 
+        default:
             return false;
     }
 }
@@ -102,10 +102,10 @@ static bool is_char_type(struct apigen_Type const * type) {
 
 static bool is_stringly_type(struct apigen_Type type, size_t len)
 {
+    struct apigen_Pointer const * pointer;
+    struct apigen_Array const * array;
     switch(type.id)
     {
-        struct apigen_Pointer const * pointer;
-        struct apigen_Array const * array;
 
         case apigen_typeid_const_ptr_to_one:
         case apigen_typeid_nullable_const_ptr_to_one:
@@ -130,7 +130,7 @@ static bool is_stringly_type(struct apigen_Type type, size_t len)
             pointer = type.extra;
             APIGEN_ASSERT(pointer != NULL);
             return is_char_type(pointer->underlying_type);
-            
+
         case apigen_typeid_const_ptr_to_sentinelled_many: // [*:X]const X
         case apigen_typeid_nullable_const_ptr_to_sentinelled_many: // ?[*:X]const X
             pointer = type.extra;
@@ -154,7 +154,7 @@ static bool is_stringly_type(struct apigen_Type type, size_t len)
 
             return is_char_type(array->underlying_type);
 
-        default: 
+        default:
             return false;
     }
 }
@@ -191,7 +191,7 @@ static void insert_ival_into_range(struct ValueRange * range, int64_t ival)
 static void insert_uval_into_range(struct ValueRange * range, uint64_t uval)
 {
     APIGEN_NOT_NULL(range);
-    
+
     if((range->min > 0) && ((uint64_t)range->min > uval)) range->min = (int64_t)uval;
     if(range->max < uval) range->max = uval;
 }
@@ -207,7 +207,7 @@ static struct ValueRange get_integer_range(enum apigen_TypeId type)
         case apigen_typeid_u16:         return (struct ValueRange){ .min =          0, .max = UINT16_MAX };
         case apigen_typeid_u32:         return (struct ValueRange){ .min =          0, .max = UINT32_MAX };
         case apigen_typeid_u64:         return (struct ValueRange){ .min =          0, .max = UINT64_MAX };
-        
+
         case apigen_typeid_i8:          return (struct ValueRange){ .min = INT8_MIN,   .max = INT8_MAX };
         case apigen_typeid_i16:         return (struct ValueRange){ .min = INT16_MIN,  .max = INT16_MAX };
         case apigen_typeid_i32:         return (struct ValueRange){ .min = INT32_MIN,  .max = INT32_MAX };
@@ -245,7 +245,7 @@ bool apigen_type_is_unsigned_integer(enum apigen_TypeId type)
         case apigen_typeid_u16:         return true;
         case apigen_typeid_u32:         return true;
         case apigen_typeid_u64:         return true;
-        
+
         case apigen_typeid_i8:          return false;
         case apigen_typeid_i16:         return false;
         case apigen_typeid_i32:         return false;
@@ -278,19 +278,19 @@ static enum apigen_TypeId mapPtrType(enum apigen_ParserTypeId src_type_id, bool 
 
         case apigen_parser_type_ptr_to_one:
             return is_const
-                ? (is_optional ? apigen_typeid_nullable_const_ptr_to_one : apigen_typeid_const_ptr_to_one) // const 
+                ? (is_optional ? apigen_typeid_nullable_const_ptr_to_one : apigen_typeid_const_ptr_to_one) // const
                 : (is_optional ? apigen_typeid_nullable_ptr_to_one       : apigen_typeid_ptr_to_one)       // mut
             ;
 
         case apigen_parser_type_ptr_to_many:
             return is_const
-                ? (is_optional ? apigen_typeid_nullable_const_ptr_to_many : apigen_typeid_const_ptr_to_many) // const 
+                ? (is_optional ? apigen_typeid_nullable_const_ptr_to_many : apigen_typeid_const_ptr_to_many) // const
                 : (is_optional ? apigen_typeid_nullable_ptr_to_many       : apigen_typeid_ptr_to_many)       // mut
             ;
 
         case apigen_parser_type_ptr_to_many_sentinelled:
             return is_const
-                ? (is_optional ? apigen_typeid_nullable_const_ptr_to_sentinelled_many : apigen_typeid_const_ptr_to_sentinelled_many) // const 
+                ? (is_optional ? apigen_typeid_nullable_const_ptr_to_sentinelled_many : apigen_typeid_const_ptr_to_sentinelled_many) // const
                 : (is_optional ? apigen_typeid_nullable_ptr_to_sentinelled_many       : apigen_typeid_ptr_to_sentinelled_many)       // mut
             ;
 
@@ -336,7 +336,7 @@ static void gsq_push(struct GlobalResolutionQueue * q, struct GlobalResolutionQu
         APIGEN_ASSERT(q->head != NULL);
         q->tail->next = node;
         q->tail = node;
-    }   
+    }
 
     q->len += 1;
 }
@@ -363,12 +363,12 @@ static struct GlobalResolutionQueueNode * gsq_pop(struct GlobalResolutionQueue *
     }
 }
 
-struct ResolveState 
+struct ResolveState
 {
     struct apigen_ParserState * parser;
     struct apigen_TypePool * pool;
 
-    bool emit_resolve_errors;    
+    bool emit_resolve_errors;
     jmp_buf generic_error_retpoint;
 
     char nested_type_name_hint_buf[1024];
@@ -430,7 +430,7 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
             }
             return named_type;
         }
-            
+
         case apigen_parser_type_ptr_to_one:
         case apigen_parser_type_ptr_to_many:
         case apigen_parser_type_ptr_to_many_sentinelled: {
@@ -438,12 +438,12 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
             if(underlying_type == NULL) {
                 return NULL;
             }
-            
+
             struct apigen_Pointer const extra_data = (struct apigen_Pointer) {
                 .underlying_type = underlying_type,
                 .sentinel        = src_type->pointer_data.sentinel,
             };
-            
+
             struct apigen_Type const pointer_type = {
                 .name = NULL,
                 .id = mapPtrType(src_type->type, src_type->pointer_data.is_const, src_type->pointer_data.is_optional),
@@ -472,7 +472,7 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
                 .underlying_type = underlying_type,
                 .size            = src_type->array_data.size.value_uint,
             };
-            
+
             struct apigen_Type const array_type = {
                 .name = NULL,
                 .id = apigen_typeid_array,
@@ -524,7 +524,7 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
                 }
                 APIGEN_ASSERT(parameter_count == index);
 
-                if(duplicate_param) {   
+                if(duplicate_param) {
                     exit_type_resolution(resolver);
                 }
             }
@@ -532,9 +532,9 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
             struct apigen_FunctionType const extra_data = (struct apigen_FunctionType) {
                 .return_type = return_type,
                 .parameter_count = parameter_count,
-                .parameters = parameters,  
+                .parameters = parameters,
             };
-            
+
             struct apigen_Type const array_type = {
                 .name = NULL,
                 .id = apigen_typeid_function,
@@ -544,9 +544,9 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
             return apigen_intern_type(resolver->pool, &array_type);
         }
 
-        case apigen_parser_type_enum: 
+        case apigen_parser_type_enum:
         case apigen_parser_type_struct:
-        case apigen_parser_type_union: 
+        case apigen_parser_type_union:
         case apigen_parser_type_opaque: {
             char const * const type_name_suffix = unique_type_suffix(src_type->type);
 
@@ -566,7 +566,7 @@ static struct apigen_Type const * resolve_type_inner(struct ResolveState * resol
             };
 
             resolver_notify_unique_type(resolver, unique_type, src_type);
-            
+
             return unique_type;
         }
     }
@@ -595,7 +595,7 @@ static struct apigen_Type const * resolve_type(
         .emit_resolve_errors = emit_resolve_errors,
         .global_resolver_queue = resolve_queue,
 
-        .nested_type_name_hint_buf = {},
+        .nested_type_name_hint_buf = {0},
         .nested_type_name_hint_len = 0,
     };
 
@@ -619,7 +619,7 @@ static struct apigen_Type const * resolve_type(
     {
         return NULL;
     }
-    else 
+    else
     {
         apigen_panic("Invalid response from setjmp, please validate your code!");
     }
@@ -750,7 +750,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
             bool value_is_signed = (underlying_type != NULL) ? !apigen_type_is_unsigned_integer(underlying_type->id) : false;
 
             struct ValueRange actual_range = INIT_LIMIT_RANGE;
-            
+
             while(iter != NULL) {
 
                 for(size_t i = 0; i < index; i++)
@@ -764,11 +764,11 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
                 bool skip_range_check = false;
                 switch(iter->value.type) {
                     case apigen_value_null: break; // null values don't change the current value
-                    
+
                     case apigen_value_str:
                         emit_diagnostics(state, iter->location, apigen_error_enum_value_illegal, iter->identifier);
                         break;
-                    
+
                     case apigen_value_sint:
                         // fprintf(stderr, "ival=%" PRIi64 "\n", iter->value.value_sint);
                         // NOTE: all signed ints are less than zero!
@@ -803,7 +803,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
                             }
                         }
                         else {
-                            
+
                             current_value.uval = iter->value.value_uint;
                         }
                         break;
@@ -826,10 +826,10 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
                     }
                 }
 
-                for(size_t i = 0; i < index; i++) 
+                for(size_t i = 0; i < index; i++)
                 {
                     // we can safely compare uval as we're comparing for "bit pattern equality"
-                    if(items[i].uvalue == current_value.uval) { 
+                    if(items[i].uvalue == current_value.uval) {
                         char buffer[256];
                         if(value_is_signed) {
                             (void)snprintf(buffer, sizeof buffer, "%"PRId64, current_value.ival);
@@ -839,8 +839,8 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
                         emit_diagnostics(state, iter->location, apigen_error_duplicate_enum_value, iter->identifier, buffer, items[i].name);
                         break;
                     }
-                }   
-                
+                }
+
                 struct apigen_EnumItem * const item = &items[index];
                 if(value_is_signed) {
                     *item = (struct apigen_EnumItem) {
@@ -873,7 +873,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
                     bool const fits_i8 = (actual_range.min >= INT8_MIN) && (actual_range.max <= INT8_MAX);
                     bool const fits_i16 = (actual_range.min >= INT16_MIN) && (actual_range.max <= INT16_MAX);
                     bool const fits_i32 = (actual_range.min >= INT32_MIN) && (actual_range.max <= INT32_MAX);
-                    
+
                     underlying_type = fits_i8  ? apigen_get_builtin_type(apigen_typeid_i8)
                                     : fits_i16 ? apigen_get_builtin_type(apigen_typeid_i16)
                                     : fits_i32 ? apigen_get_builtin_type(apigen_typeid_i32)
@@ -883,7 +883,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
                     bool const fits_u8 = (actual_range.max <= UINT8_MAX);
                     bool const fits_u16 = (actual_range.max <= UINT16_MAX);
                     bool const fits_u32 = (actual_range.max <= UINT32_MAX);
-                    
+
                     underlying_type = fits_u8  ? apigen_get_builtin_type(apigen_typeid_u8)
                                     : fits_u16 ? apigen_get_builtin_type(apigen_typeid_u16)
                                     : fits_u32 ? apigen_get_builtin_type(apigen_typeid_u32)
@@ -916,7 +916,7 @@ static bool analyze_enum_type(struct apigen_ParserState * const state, struct ap
         };
         dst_type->extra = enum_extra;
     }
-    else 
+    else
     {
         emit_diagnostics(state, src_type->location, apigen_error_enum_empty);
         ok = false;
@@ -929,7 +929,7 @@ static bool resolve_unique_type(
     struct apigen_ParserState * const state,
     struct apigen_TypePool * const type_pool,
     struct GlobalResolutionQueue * resolve_queue,
-    struct apigen_Type * const dst_type, 
+    struct apigen_Type * const dst_type,
     struct apigen_ParserType const * const src_type
     )
 {
@@ -981,7 +981,7 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
     };
 
     struct GlobalResolutionQueue resolve_queue = {
-        .arena = out_document->type_pool.arena,   
+        .arena = out_document->type_pool.arena,
     };
 
     // Phase 1: Figure out how much memory we need for all exported declarations:
@@ -1062,7 +1062,7 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                 if(decl->kind == apigen_parser_type_declaration) {
                     if(decl->associated_type == NULL) {
                         APIGEN_ASSERT(!is_unique_type( decl->type.type));
-                    
+
                         struct apigen_Type const * const resolved_type = resolve_type(state, &out_document->type_pool, &resolve_queue, emit_resolve_errors, decl->identifier, &decl->type, &non_resolve_error);
                         if(resolved_type != NULL) {
 
@@ -1101,14 +1101,14 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
             if(non_resolve_error) {
                 break;
             }
-        };
+        }
 
         if(non_resolve_error) {
             return false;
         }
 
         if(resolve_failed_count > 0) {
-            emit_diagnostics(state, (struct apigen_ParserLocation){}, apigen_error_unresolved_symbols, resolve_failed_count);
+            emit_diagnostics(state, (struct apigen_ParserLocation){0}, apigen_error_unresolved_symbols, resolve_failed_count);
             return false;
         }
     }
@@ -1126,7 +1126,7 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                     if(!resolve_ok) {
                         ok = false;
                     }
-                }                
+                }
             }
             decl = decl->next;
         }
@@ -1265,7 +1265,7 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                     }
                     else {
                         emit_diagnostics(state, decl->location, apigen_error_constexpr_illegal_type, global->name);
-                    }   
+                    }
 
                 } else {
                     ok = false;

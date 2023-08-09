@@ -11,6 +11,10 @@
 
 #define APIGEN_NORETURN __attribute__((noreturn))
 #define APIGEN_UNREACHABLE() __builtin_unreachable()
+
+#define APIGEN_PRINTFLIKE(StrIndex,FirstVarIndex) __attribute__ ((format (printf, StrIndex, FirstVarIndex)))
+#define APIGEN_VPRINTFLIKE(StrIndex) APIGEN_PRINTFLIKE(StrIndex, 0)
+
 #define APIGEN_NOT_NULL(_X)                                                    \
   do {                                                                         \
     if ((_X) == NULL) {                                                        \
@@ -24,7 +28,7 @@
       apigen_panic(__FILE__ ":" APIGEN_SSTR(__LINE__) ":Assertion failure: " #_Cond " did not assert!");          \
   } while (false)
 
-struct apigen_Stream 
+struct apigen_Stream
 {
     void * context;
     void (*write)(void * context, char const * data, size_t length);
@@ -42,8 +46,8 @@ extern struct apigen_Stream const apigen_io_null;
 struct apigen_Stream apigen_io_file_stream(FILE * file);
 
 void apigen_io_write(struct apigen_Stream stream, char const * data, size_t length);
-void apigen_io_printf(struct apigen_Stream stream, char const * format, ...);
-void apigen_io_vprintf(struct apigen_Stream stream, char const * format, va_list list);
+void apigen_io_printf(struct apigen_Stream stream, char const * format, ...) APIGEN_PRINTFLIKE(2, 3);
+void apigen_io_vprintf(struct apigen_Stream stream, char const * format, va_list list) APIGEN_VPRINTFLIKE(2);
 void apigen_io_write_string(struct apigen_Stream stream, char const * data);
 
 // generic values:
@@ -226,7 +230,7 @@ struct apigen_Type const * apigen_lookup_type(struct apigen_TypePool const * poo
 
 bool apigen_register_type(struct apigen_TypePool * pool, struct apigen_Type const * type, char const * name_hint);
 
-/// Takes `type` and returns a canonical version of it for which pointer equality is 
+/// Takes `type` and returns a canonical version of it for which pointer equality is
 /// given. The returned value has same lifetime as the `pool` parameter.
 struct apigen_Type const * apigen_intern_type(struct apigen_TypePool * pool, struct apigen_Type const * type);
 
@@ -338,7 +342,7 @@ bool apigen_analyze(struct apigen_ParserState *state, struct apigen_Document * o
 
 enum apigen_DiagnosticCode
 {
-#define APIGEN_TEMP_MACRO(_Symbol, _Id, _Format) _Symbol = _Id,
+#define APIGEN_TEMP_MACRO(_Symbol, _Id, _Format) _Symbol = _Id##u,
 APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(APIGEN_TEMP_MACRO)
 #undef  APIGEN_TEMP_MACRO
 };
@@ -376,7 +380,7 @@ void apigen_diagnostics_vemit(
     char const * file_name,
     uint32_t line_number,
     uint32_t column_number,
-    enum apigen_DiagnosticCode code, 
+    enum apigen_DiagnosticCode code,
     va_list list);
 
 

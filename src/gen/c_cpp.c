@@ -26,7 +26,7 @@ static void render_value(struct apigen_Stream const stream, struct apigen_Value 
     case apigen_value_uint: apigen_io_printf(stream, "%"PRIu64, value.value_uint); break;
     case apigen_value_str: apigen_io_printf(stream, "\"%s\"", value.value_str); break;
   }
-} 
+}
 
 static void flush_indent(struct apigen_Stream const stream, size_t indent)
 {
@@ -91,7 +91,7 @@ static void render_identifier(struct apigen_Stream const stream, enum Identifier
         "alignas",   "alignof",  "bool",          "complex",
         "imaginary", "noreturn", "static_assert", "thread_local",
 
-        NULL,   
+        NULL,
     };
 
     bool reserved = false;
@@ -116,7 +116,7 @@ static void render_identifier(struct apigen_Stream const stream, enum Identifier
                 size_t len = len_min(sizeof(chunk), strlen(identifier));
 
                 for(size_t i = 0; i < len; i++) {
-                    chunk[i] = (transform == ID_LOWERCASE) ? tolower(identifier[i]) : toupper(identifier[i]);
+                    chunk[i] = (transform == ID_LOWERCASE) ? (char)tolower(identifier[i]) : (char)toupper(identifier[i]);
                 }
                 apigen_io_write(stream, chunk, len);
 
@@ -131,7 +131,7 @@ static void render_identifier(struct apigen_Stream const stream, enum Identifier
         if(exact_match) {
             apigen_panic("used unrecoverable reserved identifier!");
         }
-        apigen_io_printf(stream, "_", identifier);
+        apigen_io_printf(stream, "_");
     }
 }
 
@@ -143,7 +143,7 @@ static void render_identifier(struct apigen_Stream const stream, enum Identifier
 //     case apigen_value_uint: apigen_io_printf(stream, "%"PRIu64, value.value_uint); break;
 //     case apigen_value_str: apigen_io_printf(stream, "\"%s\"", value.value_str); break;
 //   }
-// } 
+// }
 
 enum DeclarationKind {
     DECL_REGULAR = 0,
@@ -157,7 +157,7 @@ static void render_type_suffix(struct apigen_Stream const stream, struct apigen_
 
 static void render_parameter_list(struct apigen_Stream const stream, struct apigen_FunctionType func, size_t indent)
 {
-  apigen_io_printf(stream, "(\n"); 
+  apigen_io_printf(stream, "(\n");
   for(size_t i = 0; i < func.parameter_count; i++)
   {
     struct apigen_NamedValue const param = func.parameters[i];
@@ -177,7 +177,7 @@ static void render_parameter_list(struct apigen_Stream const stream, struct apig
     }
   }
   flush_indent(stream, indent);
-  apigen_io_printf(stream, ") "); 
+  apigen_io_printf(stream, ") ");
 }
 
 
@@ -191,17 +191,17 @@ static void render_type_prefix(struct apigen_Stream const stream, struct apigen_
             default: break;
         }
 
-        render_identifier(stream, ID_KEEP, type->name, false); 
+        render_identifier(stream, ID_KEEP, type->name, false);
         return;
     }
 
+    struct apigen_Pointer const * pointer;
+    struct apigen_Array const * array;
+    struct apigen_FunctionType const * func;
+    struct apigen_Enum const * enumeration;
+    struct apigen_UnionOrStruct const * uos;
     switch(type->id)
     {
-        struct apigen_Pointer const * pointer;
-        struct apigen_Array const * array;
-        struct apigen_FunctionType const * func;
-        struct apigen_Enum const * enumeration;
-        struct apigen_UnionOrStruct const * uos;
 
         case apigen_typeid_void:        apigen_io_printf(stream, "void"); break;
         case apigen_typeid_anyopaque:   apigen_io_printf(stream, "void"); break;
@@ -255,7 +255,7 @@ static void render_type_prefix(struct apigen_Stream const stream, struct apigen_
             pointer = type->extra;
             render_type_prefix(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
             if(unalias(pointer->underlying_type)->id == apigen_typeid_function) {
-                // special casing for function pointers: 
+                // special casing for function pointers:
                 // In C, a const function pointer cannot exist
                 apigen_io_printf(stream, " *");
             }
@@ -277,13 +277,13 @@ static void render_type_prefix(struct apigen_Stream const stream, struct apigen_
             render_type_suffix(stream, func->return_type, TYPE_REFERENCE, indent);
 
             apigen_io_printf(stream, " (");
-            
+
             break;
 
         case apigen_typeid_enum:
             enumeration = type->extra;
 
-            apigen_io_printf(stream, "enum {\n"); 
+            apigen_io_printf(stream, "enum {\n");
             for(size_t i = 0; i < enumeration->item_count; i++) {
                 struct apigen_EnumItem const item = enumeration->items[i];
                 if(item.documentation != NULL) {
@@ -300,11 +300,11 @@ static void render_type_prefix(struct apigen_Stream const stream, struct apigen_
                 else {
                     apigen_io_printf(stream, "%"PRIi64, item.ivalue);
                 }
-                apigen_io_printf(stream, ",\n", item.name);
-                
+                apigen_io_printf(stream, ",\n");
+
             }
             flush_indent(stream, indent);
-            apigen_io_printf(stream, "}", type->name); 
+            apigen_io_printf(stream, "}");
             break;
 
         case apigen_typeid_struct:
@@ -318,7 +318,7 @@ static void render_type_prefix(struct apigen_Stream const stream, struct apigen_
                 apigen_io_printf(stream, "union ");
             }
             render_identifier(stream, ID_KEEP, type->name, true);
-            apigen_io_printf(stream, "{\n"); 
+            apigen_io_printf(stream, "{\n");
 
             for(size_t i = 0; i < uos->field_count; i++) {
                 struct apigen_NamedValue const field = uos->fields[i];
@@ -331,13 +331,13 @@ static void render_type_prefix(struct apigen_Stream const stream, struct apigen_
                 apigen_io_printf(stream, ";\n");
             }
             flush_indent(stream, indent);
-            apigen_io_printf(stream, "}", type->name); 
+            apigen_io_printf(stream, "}");
             break;
-        
+
         case apigen_typeid_alias:
             render_type_prefix(stream, type->extra, TYPE_REFERENCE, indent);
-            break;  
-        
+            break;
+
         case APIGEN_TYPEID_LIMIT: APIGEN_UNREACHABLE();
     }
 }
@@ -349,11 +349,11 @@ static void render_type_suffix(struct apigen_Stream const stream, struct apigen_
         return;
     }
 
+    struct apigen_Pointer const * pointer;
+    struct apigen_Array const * array;
+    struct apigen_FunctionType const * func;
     switch(type->id)
     {
-        struct apigen_Pointer const * pointer;
-        struct apigen_Array const * array;
-        struct apigen_FunctionType const * func;
 
         case apigen_typeid_void:        break;
         case apigen_typeid_anyopaque:   break;
@@ -411,22 +411,22 @@ static void render_type_suffix(struct apigen_Stream const stream, struct apigen_
         case apigen_typeid_function:
             func = type->extra;
 
-            apigen_io_printf(stream, ") "); 
+            apigen_io_printf(stream, ") ");
             render_parameter_list(stream, *func, indent);
-            
+
             break;
 
-        case apigen_typeid_enum: 
+        case apigen_typeid_enum:
             break;
 
         case apigen_typeid_struct:
         case apigen_typeid_union:
             break;
-        
+
         case apigen_typeid_alias:
             render_type_suffix(stream, type->extra, TYPE_REFERENCE, indent);
-            break;  
-        
+            break;
+
         case APIGEN_TYPEID_LIMIT: APIGEN_UNREACHABLE();
     }
 }
@@ -440,8 +440,8 @@ static void render_declaration(struct apigen_Stream const stream, enum Declarati
         case DECL_REGULAR: apigen_io_write(stream, " ", 1); break;
         case DECL_CONST:   apigen_io_write(stream, " const ", 7); break;
     }
-    render_identifier(stream, transform, identifier, true);  
-    
+    render_identifier(stream, transform, identifier, true);
+
     render_type_suffix(stream, type, render_mode, indent);
 }
 
@@ -450,7 +450,7 @@ struct TypeDeclSpec
     struct apigen_Type const * type;
     bool requires_forward_decl;
     struct TypeOrderDependency * dependencies;
-};  
+};
 
 enum DependencyType {
     DEP_HARD = 0,
@@ -460,7 +460,7 @@ enum DependencyType {
 struct TypeOrderDependency
 {
     enum DependencyType weakness; // if weak, can be forward-declared, otherwise requries hard decl
-    struct apigen_Type const * type; 
+    struct apigen_Type const * type;
     struct TypeOrderDependency * next;
 };
 
@@ -493,7 +493,7 @@ static void add_type_dependency(struct apigen_MemoryArena * const arena, struct 
 static void fetch_dependencies(struct apigen_MemoryArena * const arena, struct TypeDeclSpec * const container, struct apigen_Type const * const type, bool top_level, enum DependencyType dep_weakness)
 {
     APIGEN_NOT_NULL(type);
- 
+
     if(!top_level) {
         if(type == container->type) {
             // circular dependency, we can safely ignore it
@@ -507,7 +507,7 @@ static void fetch_dependencies(struct apigen_MemoryArena * const arena, struct T
 
             if(apigen_type_is_primitive_type(unalias(type)->id) || (type->id == apigen_typeid_alias)) {
                 // we cannot forward-declare primitive types, thus we cannot
-                // forward declare them, also 
+                // forward declare them, also
                 // we have to depend hard on type aliasing
                 dep = DEP_HARD;
             }
@@ -517,11 +517,11 @@ static void fetch_dependencies(struct apigen_MemoryArena * const arena, struct T
         }
     }
 
+    struct apigen_Pointer const * pointer;
+    struct apigen_Array const * array;
+    struct apigen_FunctionType const * func;
     switch(type->id)
     {
-        struct apigen_Pointer const * pointer;
-        struct apigen_Array const * array;
-        struct apigen_FunctionType const * func;
 
         case apigen_typeid_void:        return;
         case apigen_typeid_anyopaque:   return;
@@ -592,7 +592,7 @@ static void fetch_dependencies(struct apigen_MemoryArena * const arena, struct T
 
             break;
 
-        case apigen_typeid_enum: 
+        case apigen_typeid_enum:
             if(!top_level) {
                 apigen_panic("Cannot implicitly depend on a non-named enum type");
             }
@@ -619,7 +619,7 @@ static void fetch_dependencies(struct apigen_MemoryArena * const arena, struct T
             APIGEN_ASSERT(top_level || (type->name != NULL));
             fetch_dependencies(arena, container, type->extra, false, dep_weakness);
             break;
-        
+
         case APIGEN_TYPEID_LIMIT: APIGEN_UNREACHABLE();
     }
 }
@@ -687,7 +687,7 @@ static struct TypeDeclSpec * create_type_order_map(struct apigen_MemoryArena * c
             APIGEN_ASSERT((dep_first >= 0) && (dep_first < array_len));
             APIGEN_ASSERT((dep_last >= 0) && (dep_last < array_len));
             bool const deps_ok = (item.dependencies == NULL) || (dep_last < index);
-            
+
             // fprintf(stderr, "[%3zu] range: [%3zu,%3zu] deps for %s are %s\n", index, dep_first, dep_last, item.type->name, deps_ok ? "ok" : "bad");
 
             if(deps_ok == false)
@@ -750,7 +750,7 @@ bool apigen_render_c(struct apigen_Stream const stream, struct apigen_MemoryAren
 
     // Phase 1: Render necessary forward declarations
 
-    
+
     for(size_t i = 0; i < document->type_count; i++)
     {
         struct TypeDeclSpec decl = ordered_types[i];

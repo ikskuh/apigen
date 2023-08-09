@@ -16,6 +16,7 @@ static void flush_indent(struct apigen_Stream const stream, size_t indent)
 
 static void render_docstring(struct apigen_Stream const stream, size_t indent, char const * docstring)
 {
+  APIGEN_NOT_NULL(docstring);
   while(true)
   {
     size_t l = 0;
@@ -43,14 +44,14 @@ static void render_docstring(struct apigen_Stream const stream, size_t indent, c
 static void render_identifier(struct apigen_Stream const stream, char const * identifier)
 {
   static char const * const reserved_identifiers[] = {
-    "addrspace",      "align",          "allowzero",      "and",            "anyframe",       "anytype",        "asm",     
+    "addrspace",      "align",          "allowzero",      "and",            "anyframe",       "anytype",        "asm",
     "async",          "await",          "break",          "callconv",       "catch",          "comptime",       "const",
     "continue",       "defer",          "else",           "enum",           "errdefer",       "error",          "export",
     "extern",         "fn",             "for",            "if",             "inline",         "noalias",        "nosuspend",
-    "noinline",       "opaque",         "or",             "orelse",         "packed",         "pub",            "resume",      
+    "noinline",       "opaque",         "or",             "orelse",         "packed",         "pub",            "resume",
     "return",         "linksection",    "struct",         "suspend",        "switch",         "test",           "threadlocal",
     "try",            "union",          "unreachable",    "usingnamespace", "var",            "volatile",       "while",
-    NULL,   
+    NULL,
   };
 
   for(size_t i = 0; reserved_identifiers[i]; i++) {
@@ -70,13 +71,13 @@ static void render_value(struct apigen_Stream const stream, struct apigen_Value 
     case apigen_value_uint: apigen_io_printf(stream, "%"PRIu64, value.value_uint); break;
     case apigen_value_str: apigen_io_printf(stream, "\"%s\"", value.value_str); break;
   }
-} 
+}
 
 static void render_type(struct apigen_Stream const stream, struct apigen_Type const * const type, enum RenderMode render_mode, size_t indent);
 
 static void render_func_signature(struct apigen_Stream const stream, struct apigen_FunctionType func, size_t indent)
 {
-  apigen_io_printf(stream, "(\n"); 
+  apigen_io_printf(stream, "(\n");
   for(size_t i = 0; i < func.parameter_count; i++)
   {
     struct apigen_NamedValue const param = func.parameters[i];
@@ -91,8 +92,8 @@ static void render_func_signature(struct apigen_Stream const stream, struct apig
     apigen_io_printf(stream, ",\n");
   }
   flush_indent(stream, indent);
-  apigen_io_printf(stream, ") "); 
-  
+  apigen_io_printf(stream, ") ");
+
   render_type(stream, func.return_type, TYPE_REFERENCE, indent);
 }
 
@@ -101,16 +102,16 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
   APIGEN_NOT_NULL(type);
 
   if((render_mode == TYPE_REFERENCE) && type->name) {
-    apigen_io_printf(stream, "%s", type->name); 
+    apigen_io_printf(stream, "%s", type->name);
     return;
   }
 
+  struct apigen_Pointer const * pointer;
+  struct apigen_Array const * array;
+  struct apigen_FunctionType const * func;
+  struct apigen_Enum const * enumeration;
   switch(type->id)
   {
-    struct apigen_Pointer const * pointer;
-    struct apigen_Array const * array;
-    struct apigen_FunctionType const * func;
-    struct apigen_Enum const * enumeration;
 
     case apigen_typeid_void:        apigen_io_printf(stream, "void"); break;
     case apigen_typeid_anyopaque:   apigen_io_printf(stream, "anyopaque"); break;
@@ -234,17 +235,17 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
     case apigen_typeid_function:
       func = type->extra;
 
-      apigen_io_printf(stream, "fn"); 
+      apigen_io_printf(stream, "fn");
       render_func_signature(stream, *func, indent);
-      
+
       break;
 
     case apigen_typeid_enum:
       enumeration = type->extra;
 
-      apigen_io_printf(stream, "enum(", type->name); 
+      apigen_io_printf(stream, "enum(");
       render_type(stream, enumeration->underlying_type, TYPE_REFERENCE, indent);
-      apigen_io_printf(stream, ") {\n", type->name); 
+      apigen_io_printf(stream, ") {\n");
       for(size_t i = 0; i < enumeration->item_count; i++) {
         struct apigen_EnumItem const item = enumeration->items[i];
         if(item.documentation != NULL) {
@@ -259,27 +260,27 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
         else {
           apigen_io_printf(stream, "%"PRIi64, item.ivalue);
         }
-        apigen_io_printf(stream, ",\n", item.name);
-        
+        apigen_io_printf(stream, ",\n");
+
       }
         flush_indent(stream, indent);
-      apigen_io_printf(stream, "}", type->name); 
+      apigen_io_printf(stream, "}");
       break;
 
     case apigen_typeid_struct:
     case apigen_typeid_union:
       if(render_mode == TYPE_REFERENCE) {
-        apigen_io_printf(stream, "%s", type->name); 
+        apigen_io_printf(stream, "%s", type->name);
         break;
       }
 
       struct apigen_UnionOrStruct const * const uos = type->extra;
 
       if(type->id == apigen_typeid_struct) {
-        apigen_io_printf(stream, "extern struct {\n", type->name); 
+        apigen_io_printf(stream, "extern struct {\n");
       }
       else {
-        apigen_io_printf(stream, "extern union {\n", type->name); 
+        apigen_io_printf(stream, "extern union {\n");
       }
 
       for(size_t i = 0; i < uos->field_count; i++) {
@@ -295,17 +296,17 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
         apigen_io_printf(stream, ",\n");
       }
       flush_indent(stream, indent);
-      apigen_io_printf(stream, "}", type->name); 
+      apigen_io_printf(stream, "}");
       break;
-     
+
     case apigen_typeid_opaque:
       apigen_io_printf(stream, "opaque{}");
-      break;    
-      
+      break;
+
     case apigen_typeid_alias:
       render_type(stream, type->extra, TYPE_REFERENCE, indent);
-      break;  
-    
+      break;
+
     case APIGEN_TYPEID_LIMIT: APIGEN_UNREACHABLE();
   }
 }
@@ -332,7 +333,7 @@ bool apigen_render_zig(struct apigen_Stream const stream, struct apigen_MemoryAr
     render_type(stream, type, TYPE_INSTANCE, 0);
     apigen_io_printf(stream, ";\n\n");
   }
-  
+
   apigen_io_printf(stream, "\n");
 
   for(size_t i = 0; i < document->variable_count; i++)
@@ -349,7 +350,7 @@ bool apigen_render_zig(struct apigen_Stream const stream, struct apigen_MemoryAr
     render_type(stream, global.type, TYPE_REFERENCE, 0);
     apigen_io_printf(stream, ";\n\n");
   }
-  
+
   apigen_io_printf(stream, "\n");
 
   for(size_t i = 0; i < document->constant_count; i++)
@@ -379,7 +380,7 @@ bool apigen_render_zig(struct apigen_Stream const stream, struct apigen_MemoryAr
     if(func.documentation != NULL) {
       render_docstring(stream, 0, func.documentation);
     }
-    
+
     apigen_io_printf(stream, "pub extern fn ");
     render_identifier(stream, func.name);
 

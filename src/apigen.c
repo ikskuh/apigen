@@ -12,7 +12,7 @@ enum TestMode
     TEST_MODE_ANALYZER = 2,
 };
 
-enum TargetLanguage 
+enum TargetLanguage
 {
     LANG_C = 0,
     LANG_CPP,
@@ -37,7 +37,7 @@ struct CliOptions
 
 static void print_help(char const * exe, FILE * out)
 {
-    static char const help_string[] = 
+    static char const help_string[] =
         "%s [-h] [-o <file>] [-l <lang>] <input file>" "\n"
         "" "\n"
         "apigen is a tool to generate bindings and implementations for APIs that cross ABI boundaries." "\n"
@@ -64,6 +64,7 @@ static char const * short_option_map[128] = {
 
 static void move_arg_to_end(int argc, char ** argv, int index)
 {
+    APIGEN_NOT_NULL(argv);
     APIGEN_ASSERT(index < argc);
     if(index + 1 == argc) {
         return; // quick path
@@ -81,7 +82,7 @@ static void APIGEN_NORETURN parse_option_error(char const * option, char const *
     (void)option;
     fprintf(stderr, "error while parsing option '%s': %s\n", option, error);
     exit(1);
-}   
+}
 
 enum OptionConsumption {
     IGNORE_VALUE,
@@ -172,7 +173,7 @@ static struct CliOptions parse_options_or_exit(int argc, char ** argv)
     {
         char * const arg = argv[index];
         size_t const arg_len   = strlen(arg);
-        
+
 
         if(allow_options && (arg_len == 2) && (arg[0] == '-') && (arg[1] == '-')) {
             // lone "--", everything after here is positional
@@ -204,7 +205,7 @@ static struct CliOptions parse_options_or_exit(int argc, char ** argv)
 
             if(parse_option(&options, option, value)) {
                 if(!has_value) {
-                    // we got the value from the next argv, not from 
+                    // we got the value from the next argv, not from
                     // the current one, so skip the next one
                     index += 1;
                 }
@@ -245,7 +246,7 @@ static struct CliOptions parse_options_or_exit(int argc, char ** argv)
                         if(parse_option(&options, opt_expanded, opt_value)) {
                             APIGEN_ASSERT(i == (opt_len-1));
                             if(!has_value) {
-                                // we got the value from the next argv, not from 
+                                // we got the value from the next argv, not from
                                 // the current one, so skip the next one
                                 index += 1;
                             }
@@ -276,8 +277,8 @@ static struct CliOptions parse_options_or_exit(int argc, char ** argv)
 }
 
 static int regular_invocation(
-        struct apigen_MemoryArena * const arena, 
-        struct apigen_Diagnostics * const diagnostics, 
+        struct apigen_MemoryArena * const arena,
+        struct apigen_Diagnostics * const diagnostics,
         struct CliOptions const * const options
     )
 {
@@ -362,7 +363,7 @@ static char * str_trim(char * string)
     while(*string && isspace(*string)) {
         string += 1;
     }
-    
+
     char * start = string;
     while(*string && !isspace(*string)) {
         string += 1;
@@ -414,7 +415,7 @@ static struct CodeArray parse_expectations_from_file(struct apigen_MemoryArena *
 
             char * item = str_trim(list);
             if(*item != 0) {
-                int expected_code = strtol(item, NULL, 10);
+                long const expected_code = strtol(item, NULL, 10);
                 if(expected_code != 0) {
                     if(result.len >= max_expected_items) {
                         apigen_panic("please adjust max_expected_items to successfully run this test!");
@@ -431,7 +432,7 @@ static struct CodeArray parse_expectations_from_file(struct apigen_MemoryArena *
                 break;
             list += (comma_pos + 1);
         }
-        
+
     }
 
     (void)arena;
@@ -442,8 +443,8 @@ static struct CodeArray parse_expectations_from_file(struct apigen_MemoryArena *
 }
 
 static int test_runner(
-        struct apigen_MemoryArena * const arena, 
-        struct apigen_Diagnostics * const diagnostics, 
+        struct apigen_MemoryArena * const arena,
+        struct apigen_Diagnostics * const diagnostics,
         struct CliOptions const * const options
     )
 {
@@ -459,7 +460,7 @@ static int test_runner(
     }
 
     struct CodeArray const expectations = parse_expectations_from_file(arena, f);
-    
+
 
     struct apigen_ParserState state = {
         .file = f,
@@ -484,21 +485,21 @@ static int test_runner(
         for(size_t i = 0; i < expectations.len; i++)
         {
             enum apigen_DiagnosticCode const code = expectations.ptr[i];
-            
+
             if(!apigen_diagnostics_remove_one(diagnostics, code)) {
                 fprintf(stderr, "error: expected diagnostic code %d, but it was not present!\n", code);
                 expectations_met = false;
             }
         }
-        
+
         if(apigen_diagnostics_has_any(diagnostics)) {
             // got unexpected diagnostics, test failed
             fprintf(stderr, "error: unexpected diagnostics are present!\n");
             return false;
         }
-        
+
         // all diagnostics are as expected, we successfully ran the test
-        return expectations_met ? EXIT_SUCCESS : EXIT_FAILURE;;
+        return expectations_met ? EXIT_SUCCESS : EXIT_FAILURE;
     }
     else {
         return ok ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -506,8 +507,8 @@ static int test_runner(
 }
 
 static int wrapped_main(
-        struct apigen_MemoryArena * const arena, 
-        struct apigen_Diagnostics * const diagnostics, 
+        struct apigen_MemoryArena * const arena,
+        struct apigen_Diagnostics * const diagnostics,
         struct CliOptions const * const options
     )
 {
@@ -521,7 +522,7 @@ static int wrapped_main(
     }
     else {
         return test_runner(arena, diagnostics, options);
-    }    
+    }
 }
 
 int main(int argc, char **argv)

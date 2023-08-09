@@ -2,18 +2,18 @@
 
 #include <string.h>
 
-struct apigen_DiagnosticItem 
+struct apigen_DiagnosticItem
 {
     struct apigen_DiagnosticItem * next;
 
     enum apigen_DiagnosticCode code;
-    
+
     char const * message;
     char const * file_name;
-    int line, column;
+    uint32_t line, column;
 };
 
-static bool is_in_range(int lo, int hi, int val)
+static bool is_in_range(uint32_t lo, uint32_t hi, uint32_t val)
 {
     return (val >= lo) && (val <= hi);
 }
@@ -40,17 +40,19 @@ static char const * get_diag_code_fmt_string(enum apigen_DiagnosticCode code)
 #define APIGEN_TEMP_MACRO(_Symbol, _Id, _Format) case _Symbol:  return _Format;
 APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(APIGEN_TEMP_MACRO)
 #undef  APIGEN_TEMP_MACRO
-
-        default: apigen_panic("Error code was not added to format list");
     }
+    apigen_panic("Error code was not added to format list");
 }
 
+
+
+
 void apigen_diagnostics_emit(
-        struct apigen_Diagnostics * diags, 
+        struct apigen_Diagnostics * diags,
         char const * file_name,
         uint32_t line_number,
         uint32_t column_number,
-        enum apigen_DiagnosticCode code, 
+        enum apigen_DiagnosticCode code,
         ...
     )
 {
@@ -61,11 +63,11 @@ void apigen_diagnostics_emit(
 }
 
 void apigen_diagnostics_vemit(
-        struct apigen_Diagnostics * diags, 
+        struct apigen_Diagnostics * diags,
         char const * file_name,
         uint32_t line_number,
         uint32_t column_number,
-        enum apigen_DiagnosticCode code, 
+        enum apigen_DiagnosticCode code,
         va_list src_list
     )
 {
@@ -79,16 +81,22 @@ void apigen_diagnostics_vemit(
     {
         va_list list;
         va_copy(list, src_list);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral" // we have total control oer the format strings here
         formatted_message_len = vsnprintf(NULL, 0, message_format_str, list);
+#pragma clang diagnostic pop
         va_end(list);
         APIGEN_ASSERT(formatted_message_len >= 0);
     }
 
-    char * const formatted_message = apigen_memory_arena_alloc(diags->arena, (size_t)formatted_message_len + 1);
+    char * const formatted_message = apigen_memory_arena_alloc(diags->arena, (size_t)(formatted_message_len + 1));
     {
         va_list list;
         va_copy(list, src_list);
-        int length = vsnprintf(formatted_message, formatted_message_len + 1, message_format_str, list);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral" // we have total control oer the format strings here
+        int const length = vsnprintf(formatted_message, (size_t)(formatted_message_len + 1), message_format_str, list);
+#pragma clang diagnostic pop
         va_end(list);
         APIGEN_ASSERT(length == formatted_message_len);
         formatted_message[formatted_message_len] = 0; // ensure NULL terminator
@@ -150,7 +158,7 @@ bool apigen_diagnostics_remove_one(struct apigen_Diagnostics * diags, enum apige
     struct apigen_DiagnosticItem * previous = NULL;
     struct apigen_DiagnosticItem * iter = diags->items;
     while(iter)
-    {   
+    {
         if(iter->code == code) {
             if(previous != NULL) {
                 previous->next = iter->next;

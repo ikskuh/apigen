@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+
 static void apigen_io_writeFile(void * context, char const *string, size_t length)
 {
     FILE * const file = context;
@@ -64,6 +65,8 @@ void apigen_io_write_string(struct apigen_Stream stream, char const * data)
     apigen_io_write(stream, data, strlen(data));
 }
 
+
+
 void apigen_io_printf(struct apigen_Stream stream, char const * format, ...)
 {
     va_list list;
@@ -76,20 +79,21 @@ void apigen_io_vprintf(struct apigen_Stream stream, char const * format, va_list
 {
     char fixed_buffer[1024];
 
-    int top_res = vsnprintf(fixed_buffer, sizeof fixed_buffer, format, list);
+    int const top_res = vsnprintf(fixed_buffer, sizeof fixed_buffer, format, list);
     if(top_res >= 0) {
-        return apigen_io_write(stream, fixed_buffer, top_res);
+        apigen_io_write(stream, fixed_buffer, (size_t)top_res);
+        return;
     }
 
-    int dynamic_length = vsnprintf(NULL, 0, format, list);
+    int const dynamic_length = vsnprintf(NULL, 0, format, list);
     APIGEN_ASSERT(dynamic_length >= 0);
 
     char * const dynamic_buffer = apigen_alloc((size_t)dynamic_length);
 
-    int length = vsnprintf(dynamic_buffer, dynamic_length, format, list);
+    int const length = vsnprintf(dynamic_buffer, (size_t)dynamic_length, format, list);
     APIGEN_ASSERT(length == dynamic_length);
-    
-    apigen_io_write(stream, dynamic_buffer, length);
-    
+
+    apigen_io_write(stream, dynamic_buffer, (size_t)length);
+
     apigen_free(dynamic_buffer);
 }
