@@ -13,18 +13,6 @@
 #include "apigen.h"
 #include <string.h>
 
-static inline char * strdup(char const * string)
-{
-    size_t len = strlen(string);
-    char * dupe = malloc(len + 1);
-    if(dupe == NULL) {
-        return NULL;
-    }
-    memcpy(dupe, string, len);
-    dupe[len] = 0;
-    return dupe;
-}
-
 #define YY_USER_ACTION \
     yylloc->first_line = yylloc->last_line; \
     yylloc->first_column = yylloc->last_column; \

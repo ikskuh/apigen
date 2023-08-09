@@ -1,0 +1,10 @@
+.{
+    .name = "apigen",
+    .version = "0.1.0",
+    .dependencies = .{
+        .flex = .{
+            .url = "https://github.com/MasterQ32/flex.zpkg/archive/5fb39cc1bf3068a3bee46ce8ce03d731d36475a9.tar.gz",
+            .hash = "1220cc5e04dd79e0a434da098768ee4080e4ddb2850457807517d3f32ca86d80f31f",
+        },
+    },
+}

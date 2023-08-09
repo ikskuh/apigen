@@ -42,10 +42,14 @@ fn apigen_memory_arena_deinit(arena: *apigen_MemoryArena) void;
 - [ ] C++
 - [x] Zig
 - [ ] Rust
-- [ ] Go
 - [ ] C#
+- [ ] Lua (via [luaffi](https://github.com/jmckaskill/luaffi) or [luajit](http://luajit.org/ext_ffi.html))
+- [ ] Python (via [CFFI](https://cffi.readthedocs.io/en/latest/index.html))
+- [ ] Go (might not be possible, just go through C headers)
+- [ ] HTML documentation
+- [ ] [Windows ImpLib](https://learn.microsoft.com/en-us/cpp/build/reference/implib-name-import-library)
 
-## Missing features
+## Missing language features
 
 - [ ] Field alignment
 - [ ] Pointer alignment

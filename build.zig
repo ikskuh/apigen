@@ -1,40 +1,16 @@
 const std = @import("std");
 
-const lax_cflags = [_][]const u8{"-std=c11"};
-
-const strict_cflags = lax_cflags ++ [_][]const u8{
-    "-pedantic",
-    "-Werror",
-    "-Wall",
-    "-Wextra",
-    "-Wunused-parameter",
-    "-Wreturn-type",
-    "-Wimplicit-fallthrough",
-    "-Wmissing-prototypes",
-    "-Wshadow",
-    "-Wmissing-variable-declarations", // this is most likely a bug, otherwise it can be explicitly solved locally
-    "-Wextra-semi-stmt", // this is just clean code
-    "-Wformat-extra-args", // definitly a bug when it happens
-    "-Wunreachable-code", // definitly a bug when it happens
-
-    // "-Weverything", // Enable when changing larger pieces of the code base and triage
-
-    // we don't care for those warnings:
-    "-Wno-declaration-after-statement", // writing C11 code
-    "-Wno-c++98-compat", // writing C11 code
-    "-Wno-padded", // This is a purely informational warning and provides no benefit for us
-    "-Wno-unsafe-buffer-usage", // We're writing C, not C++!
-    "-Wno-switch-enum", // stupidly, it isn't muted when a "default:" is preset
-};
-
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const flex_dep = b.dependency("flex", .{});
+    const flex = flex_dep.artifact("flex");
+
     const test_step = b.step("test", "Runs the test suite");
 
-    const lexer_gen = b.addSystemCommand(&.{
-        "flex",
+    const lexer_gen = b.addRunArtifact(flex);
+    lexer_gen.addArgs(&.{
         "--hex", //  use hexadecimal numbers instead of octal in debug outputs
         "--8bit", // generate 8-bit scanner
         "--batch", // generate batch scanner
@@ -50,7 +26,7 @@ pub fn build(b: *std.Build) void {
     lexer_gen.addFileSourceArg(.{ .path = "src/parser/lexer.l" });
 
     const parser_gen = b.addSystemCommand(&.{
-        "bison",
+        "bison", // TODO: Make bison package so we can get rid of that system dependency!
         "--language=c", // specify the output programming language
         "--locations", // enable location support
         // "--file-prefix=PREFIX", // specify a PREFIX for output files
@@ -94,7 +70,7 @@ pub fn build(b: *std.Build) void {
     );
 
     // both require access to "parser.h":
-    const local_include = [_][]const u8{ "-I", "src" };
+    const local_include = [_][]const u8{ "-I", b.pathFromRoot("src") };
     exe.addCSourceFile(.{ .file = lexer_c_source, .flags = &lax_cflags ++ local_include });
     exe.addCSourceFile(.{ .file = parser_c_source, .flags = &lax_cflags ++ local_include });
 
@@ -276,6 +252,33 @@ const analyzer_negative_files = [_][]const u8{
     "tests/analyzer/fail/nested-struct-bad.api",
     "tests/analyzer/fail/union-empty.api",
     "tests/analyzer/fail/constexpr-type-unsupported.api",
+};
+
+const lax_cflags = [_][]const u8{"-std=c11"};
+
+const strict_cflags = lax_cflags ++ [_][]const u8{
+    "-pedantic",
+    "-Werror",
+    "-Wall",
+    "-Wextra",
+    "-Wunused-parameter",
+    "-Wreturn-type",
+    "-Wimplicit-fallthrough",
+    "-Wmissing-prototypes",
+    "-Wshadow",
+    "-Wmissing-variable-declarations", // this is most likely a bug, otherwise it can be explicitly solved locally
+    "-Wextra-semi-stmt", // this is just clean code
+    "-Wformat-extra-args", // definitly a bug when it happens
+    "-Wunreachable-code", // definitly a bug when it happens
+
+    // "-Weverything", // Enable when changing larger pieces of the code base and triage
+
+    // we don't care for those warnings:
+    "-Wno-declaration-after-statement", // writing C11 code
+    "-Wno-c++98-compat", // writing C11 code
+    "-Wno-padded", // This is a purely informational warning and provides no benefit for us
+    "-Wno-unsafe-buffer-usage", // We're writing C, not C++!
+    "-Wno-switch-enum", // stupidly, it isn't muted when a "default:" is preset
 };
 
 const analyzer_test_files = analyzer_positive_files ++ analyzer_negative_files ++ general_examples;
