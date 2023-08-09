@@ -1,10 +1,8 @@
 # APIGEN - API Definition Language
 
-APIGEN provides tooling to create a single-source-of-truth API definition and generate
-bindings and implementation stubs from it.
+APIGEN provides tooling to create a single-source-of-truth API definition and generate bindings and implementation stubs from it.
 
-The project goal is that developers don't have to maintain the guts of library wrappers
-anymore and provide a precise way to declare APIs:
+The project goal is that developers don't have to maintain the guts of library wrappers anymore and provide a precise way to declare APIs:
 
 ```zig
 type apigen_TypeId = enum {
@@ -45,6 +43,7 @@ fn apigen_memory_arena_deinit(arena: *apigen_MemoryArena) void;
 - [x] Zig
 - [ ] Rust
 - [ ] Go
+- [ ] C#
 
 ## Missing features
 
@@ -56,6 +55,7 @@ fn apigen_memory_arena_deinit(arena: *apigen_MemoryArena) void;
 - [ ] Bitfield generation (Zig: `packed struct`, C: int + macro helpers, Rust: ???)
 - [ ] Namespaces
 - [ ] Calling convention support
+- [ ] Include files / structuring
 
 ## apigen Language
 
@@ -166,7 +166,7 @@ The following table contains a short description of all available type construct
 | `c_longlong`    | The equivalent to the C type `long long`                              | *platform dependent* |
 | `c_ulonglong`   | The equivalent to the C type `unsigned long long`                     | *platform dependent* |
 
-#### `struct { … }`  
+#### `struct { … }`
 
 ```zig
 struct {
@@ -178,7 +178,7 @@ struct {
 
 A structure is a composite of several types, each layed out in seqeuence next to each other in memory, with respect to natural alignment.
 
-#### `union { … }`   
+#### `union { … }`
 
 ```zig
 union {
@@ -190,7 +190,7 @@ union {
 
 A union is declared syntacially similar to a struct, but all fields occupy the same memory address and only one field can be active at a time.
 
-#### `enum { … }`    
+#### `enum { … }`
 
 ```zig
 enum {
@@ -201,11 +201,11 @@ enum {
 }
 ```
 
-An enumeration is a type that only allows an exclusive set of named items. Each items has an integer value assigned to it. 
+An enumeration is a type that only allows an exclusive set of named items. Each items has an integer value assigned to it.
 
 An enumeration is stored in an integer that can store all item values and is selected automatically by the system.
 
-#### `enum(T) { … }` 
+#### `enum(T) { … }`
 
 ```zig
 enum(T) {
@@ -218,7 +218,7 @@ enum(T) {
 
 Similar to a regular enum, but the backing integer is explicitly given instead of being deduced by the system.
 
-#### `opaque { }`    
+#### `opaque { }`
 
 This is an opaque type (like `anyopaque`) which is only legal to be used in pointers. It has no specified size, and
 cannot be instantiated, but might be implemented by external means.
@@ -238,8 +238,8 @@ With this, types can be implementation-defined and hidden from the API surface.
 ### Build
 
 ```sh-session
-abc@ce7d9be5b94d:/workspace/projects/apigen$ zig build install
-abc@ce7d9be5b94d:/workspace/projects/apigen$ 
+user@host:/workspace/projects/apigen$ zig build install
+user@host:/workspace/projects/apigen$
 ```
 
 will output `zig-out/bin/apigen`
@@ -247,11 +247,20 @@ will output `zig-out/bin/apigen`
 ### Tests
 
 ```sh-session
-abc@ce7d9be5b94d:/workspace/projects/apigen$ zig build test
-abc@ce7d9be5b94d:/workspace/projects/apigen$ 
+user@host:/workspace/projects/apigen$ zig build test
+user@host:/workspace/projects/apigen$
 ```
 
 will run the test suite and outputs the failed tests, if any.
 
 This may take a while as a lot of variants are tested.
+
+## FAQ
+
+### Why write in in C when there is Zig already a dependency?
+
+This reason is quite simple: It allows other projects to vendor a distribution
+of `apigen` without the Zig build stuff. The whole thing is designed to be compiled with a `gcc src/*.c` invocation after the parser and lexer have been generated.
+
+This makes it really easy to vendor everything.
 
