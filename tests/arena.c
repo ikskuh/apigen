@@ -32,7 +32,7 @@ int main(int argc, char ** argv)
 
     apigen_memory_alloc_backend = test_malloc;
     apigen_memory_free_backend = test_free;
-    
+
     {
         struct apigen_MemoryArena arena;
         apigen_memory_arena_init(&arena);
@@ -59,7 +59,7 @@ int main(int argc, char ** argv)
     {
         struct apigen_MemoryArena arena;
         apigen_memory_arena_init(&arena);
- 
+
         size_t alloc_size = arena.chunk_size / 4;
 
         for(size_t i = 0; i < 8; i++) {

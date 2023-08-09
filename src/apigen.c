@@ -465,7 +465,7 @@ static int test_runner(
         return 1;
     }
 
-    struct const CodeArray expectations = parse_expectations_from_file(arena, f);
+    struct CodeArray const expectations = parse_expectations_from_file(arena, f);
 
     struct apigen_ParserState state = {
         .file        = f,
@@ -488,7 +488,7 @@ static int test_runner(
         bool expectations_met = true;
 
         for (size_t i = 0; i < expectations.len; i++) {
-            enum const apigen_DiagnosticCode code = expectations.ptr[i];
+            enum apigen_DiagnosticCode const code = expectations.ptr[i];
 
             if (!apigen_diagnostics_remove_one(diagnostics, code)) {
                 fprintf(stderr, "error: expected diagnostic code %d, but it was not present!\n", code);

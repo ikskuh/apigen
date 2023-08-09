@@ -48,7 +48,7 @@ struct apigen_Stream apigen_io_file_stream(FILE * file);
 void apigen_io_write(struct apigen_Stream stream, char const * data, size_t length);
 void apigen_io_printf(struct apigen_Stream stream, char const * format, ...) APIGEN_PRINTFLIKE(2, 3);
 void apigen_io_vprintf(struct apigen_Stream stream, char const * format, va_list list) APIGEN_VPRINTFLIKE(2);
-void apigen_io_write_string(struct apigen_Stream stream, char const * data);
+void apigen_io_print(struct apigen_Stream stream, char const * data);
 
 // generic values:
 

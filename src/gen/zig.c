@@ -60,13 +60,13 @@ static void render_identifier(struct apigen_Stream const stream, char const * id
       return;
     }
   }
-  apigen_io_printf(stream, "%s", identifier);
+  apigen_io_print(stream, identifier);
 }
 
 static void render_value(struct apigen_Stream const stream, struct apigen_Value value)
 {
   switch(value.type) {
-    case apigen_value_null: apigen_io_write(stream, "null", 4); break;
+    case apigen_value_null: apigen_io_print(stream, "null"); break;
     case apigen_value_sint: apigen_io_printf(stream, "%"PRIi64, value.value_sint); break;
     case apigen_value_uint: apigen_io_printf(stream, "%"PRIu64, value.value_uint); break;
     case apigen_value_str: apigen_io_printf(stream, "\"%s\"", value.value_str); break;
@@ -77,7 +77,7 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
 
 static void render_func_signature(struct apigen_Stream const stream, struct apigen_FunctionType func, size_t indent)
 {
-  apigen_io_printf(stream, "(\n");
+  apigen_io_print(stream, "(\n");
   for(size_t i = 0; i < func.parameter_count; i++)
   {
     struct apigen_NamedValue const param = func.parameters[i];
@@ -87,12 +87,12 @@ static void render_func_signature(struct apigen_Stream const stream, struct apig
     }
     flush_indent(stream, indent + 1);
     render_identifier(stream, param.name);
-    apigen_io_printf(stream, ": ");
+    apigen_io_print(stream, ": ");
     render_type(stream, param.type, TYPE_REFERENCE, indent + 1);
-    apigen_io_printf(stream, ",\n");
+    apigen_io_print(stream, ",\n");
   }
   flush_indent(stream, indent);
-  apigen_io_printf(stream, ") ");
+  apigen_io_print(stream, ") ");
 
   render_type(stream, func.return_type, TYPE_REFERENCE, indent);
 }
@@ -102,7 +102,7 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
   APIGEN_NOT_NULL(type);
 
   if((render_mode == TYPE_REFERENCE) && type->name) {
-    apigen_io_printf(stream, "%s", type->name);
+    apigen_io_print(stream, type->name);
     return;
   }
 
@@ -113,115 +113,115 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
   switch(type->id)
   {
 
-    case apigen_typeid_void:        apigen_io_printf(stream, "void"); break;
-    case apigen_typeid_anyopaque:   apigen_io_printf(stream, "anyopaque"); break;
-    case apigen_typeid_bool:        apigen_io_printf(stream, "bool"); break;
-    case apigen_typeid_uchar:       apigen_io_printf(stream, "u8"); break;
-    case apigen_typeid_ichar:       apigen_io_printf(stream, "i8"); break;
-    case apigen_typeid_char:        apigen_io_printf(stream, "u8"); break;
+    case apigen_typeid_void:        apigen_io_print(stream, "void"); break;
+    case apigen_typeid_anyopaque:   apigen_io_print(stream, "anyopaque"); break;
+    case apigen_typeid_bool:        apigen_io_print(stream, "bool"); break;
+    case apigen_typeid_uchar:       apigen_io_print(stream, "u8"); break;
+    case apigen_typeid_ichar:       apigen_io_print(stream, "i8"); break;
+    case apigen_typeid_char:        apigen_io_print(stream, "u8"); break;
 
-    case apigen_typeid_u8:          apigen_io_printf(stream, "u8"); break;
-    case apigen_typeid_u16:         apigen_io_printf(stream, "u16"); break;
-    case apigen_typeid_u32:         apigen_io_printf(stream, "u32"); break;
-    case apigen_typeid_u64:         apigen_io_printf(stream, "u64"); break;
-    case apigen_typeid_usize:       apigen_io_printf(stream, "usize"); break;
-    case apigen_typeid_c_ushort:    apigen_io_printf(stream, "c_ushort"); break;
-    case apigen_typeid_c_uint:      apigen_io_printf(stream, "c_uint"); break;
-    case apigen_typeid_c_ulong:     apigen_io_printf(stream, "c_ulong"); break;
-    case apigen_typeid_c_ulonglong: apigen_io_printf(stream, "c_ulonglong"); break;
+    case apigen_typeid_u8:          apigen_io_print(stream, "u8"); break;
+    case apigen_typeid_u16:         apigen_io_print(stream, "u16"); break;
+    case apigen_typeid_u32:         apigen_io_print(stream, "u32"); break;
+    case apigen_typeid_u64:         apigen_io_print(stream, "u64"); break;
+    case apigen_typeid_usize:       apigen_io_print(stream, "usize"); break;
+    case apigen_typeid_c_ushort:    apigen_io_print(stream, "c_ushort"); break;
+    case apigen_typeid_c_uint:      apigen_io_print(stream, "c_uint"); break;
+    case apigen_typeid_c_ulong:     apigen_io_print(stream, "c_ulong"); break;
+    case apigen_typeid_c_ulonglong: apigen_io_print(stream, "c_ulonglong"); break;
 
-    case apigen_typeid_i8:          apigen_io_printf(stream, "i8"); break;
-    case apigen_typeid_i16:         apigen_io_printf(stream, "i16"); break;
-    case apigen_typeid_i32:         apigen_io_printf(stream, "i32"); break;
-    case apigen_typeid_i64:         apigen_io_printf(stream, "i64"); break;
-    case apigen_typeid_isize:       apigen_io_printf(stream, "isize"); break;
-    case apigen_typeid_c_short:     apigen_io_printf(stream, "c_short"); break;
-    case apigen_typeid_c_int:       apigen_io_printf(stream, "c_int"); break;
-    case apigen_typeid_c_long:      apigen_io_printf(stream, "c_long"); break;
-    case apigen_typeid_c_longlong:  apigen_io_printf(stream, "c_longlong"); break;
+    case apigen_typeid_i8:          apigen_io_print(stream, "i8"); break;
+    case apigen_typeid_i16:         apigen_io_print(stream, "i16"); break;
+    case apigen_typeid_i32:         apigen_io_print(stream, "i32"); break;
+    case apigen_typeid_i64:         apigen_io_print(stream, "i64"); break;
+    case apigen_typeid_isize:       apigen_io_print(stream, "isize"); break;
+    case apigen_typeid_c_short:     apigen_io_print(stream, "c_short"); break;
+    case apigen_typeid_c_int:       apigen_io_print(stream, "c_int"); break;
+    case apigen_typeid_c_long:      apigen_io_print(stream, "c_long"); break;
+    case apigen_typeid_c_longlong:  apigen_io_print(stream, "c_longlong"); break;
 
-    case apigen_typeid_f32:         apigen_io_printf(stream, "f32"); break;
-    case apigen_typeid_f64:         apigen_io_printf(stream, "f64"); break;
+    case apigen_typeid_f32:         apigen_io_print(stream, "f32"); break;
+    case apigen_typeid_f64:         apigen_io_print(stream, "f64"); break;
 
 
 
     case apigen_typeid_ptr_to_one:
       pointer = type->extra;
-      apigen_io_printf(stream, "*");
+      apigen_io_print(stream, "*");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_ptr_to_many:
       pointer = type->extra;
-      apigen_io_printf(stream, "[*]");
+      apigen_io_print(stream, "[*]");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_ptr_to_sentinelled_many:
       pointer = type->extra;
-      apigen_io_printf(stream, "[*:");
+      apigen_io_print(stream, "[*:");
       render_value(stream, pointer->sentinel);
-      apigen_io_printf(stream, "]");
+      apigen_io_print(stream, "]");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_nullable_ptr_to_one:
       pointer = type->extra;
-      apigen_io_printf(stream, "?*");
+      apigen_io_print(stream, "?*");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_nullable_ptr_to_many:
       pointer = type->extra;
-      apigen_io_printf(stream, "?[*]");
+      apigen_io_print(stream, "?[*]");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_nullable_ptr_to_sentinelled_many:
       pointer = type->extra;
-      apigen_io_printf(stream, "?[*:");
+      apigen_io_print(stream, "?[*:");
       render_value(stream, pointer->sentinel);
-      apigen_io_printf(stream, "]");
+      apigen_io_print(stream, "]");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_const_ptr_to_one:
       pointer = type->extra;
-      apigen_io_printf(stream, "*const ");
+      apigen_io_print(stream, "*const ");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_const_ptr_to_many:
       pointer = type->extra;
-      apigen_io_printf(stream, "[*]const ");
+      apigen_io_print(stream, "[*]const ");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_const_ptr_to_sentinelled_many:
       pointer = type->extra;
-      apigen_io_printf(stream, "[*:");
+      apigen_io_print(stream, "[*:");
       render_value(stream, pointer->sentinel);
-      apigen_io_printf(stream, "]const ");
+      apigen_io_print(stream, "]const ");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_nullable_const_ptr_to_one:
       pointer = type->extra;
-      apigen_io_printf(stream, "?*const ");
+      apigen_io_print(stream, "?*const ");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_nullable_const_ptr_to_many:
       pointer = type->extra;
-      apigen_io_printf(stream, "?[*]const ");
+      apigen_io_print(stream, "?[*]const ");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
     case apigen_typeid_nullable_const_ptr_to_sentinelled_many:
       pointer = type->extra;
-      apigen_io_printf(stream, "?[*:");
+      apigen_io_print(stream, "?[*:");
       render_value(stream, pointer->sentinel);
-      apigen_io_printf(stream, "]const ");
+      apigen_io_print(stream, "]const ");
       render_type(stream, pointer->underlying_type, TYPE_REFERENCE, indent);
       break;
 
@@ -235,7 +235,7 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
     case apigen_typeid_function:
       func = type->extra;
 
-      apigen_io_printf(stream, "fn");
+      apigen_io_print(stream, "fn");
       render_func_signature(stream, *func, indent);
 
       break;
@@ -243,9 +243,9 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
     case apigen_typeid_enum:
       enumeration = type->extra;
 
-      apigen_io_printf(stream, "enum(");
+      apigen_io_print(stream, "enum(");
       render_type(stream, enumeration->underlying_type, TYPE_REFERENCE, indent);
-      apigen_io_printf(stream, ") {\n");
+      apigen_io_print(stream, ") {\n");
       for(size_t i = 0; i < enumeration->item_count; i++) {
         struct apigen_EnumItem const item = enumeration->items[i];
         if(item.documentation != NULL) {
@@ -253,34 +253,34 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
         }
         flush_indent(stream, indent + 1);
         render_identifier(stream, item.name);
-        apigen_io_printf(stream, " = ");
+        apigen_io_print(stream, " = ");
         if(apigen_type_is_unsigned_integer(enumeration->underlying_type->id)) {
           apigen_io_printf(stream, "%"PRIu64, item.uvalue);
         }
         else {
           apigen_io_printf(stream, "%"PRIi64, item.ivalue);
         }
-        apigen_io_printf(stream, ",\n");
+        apigen_io_print(stream, ",\n");
 
       }
         flush_indent(stream, indent);
-      apigen_io_printf(stream, "}");
+      apigen_io_print(stream, "}");
       break;
 
     case apigen_typeid_struct:
     case apigen_typeid_union:
       if(render_mode == TYPE_REFERENCE) {
-        apigen_io_printf(stream, "%s", type->name);
+        apigen_io_print(stream, type->name);
         break;
       }
 
       struct apigen_UnionOrStruct const * const uos = type->extra;
 
       if(type->id == apigen_typeid_struct) {
-        apigen_io_printf(stream, "extern struct {\n");
+        apigen_io_print(stream, "extern struct {\n");
       }
       else {
-        apigen_io_printf(stream, "extern union {\n");
+        apigen_io_print(stream, "extern union {\n");
       }
 
       for(size_t i = 0; i < uos->field_count; i++) {
@@ -291,16 +291,16 @@ static void render_type(struct apigen_Stream const stream, struct apigen_Type co
         }
         flush_indent(stream, indent + 1);
         render_identifier(stream, field.name);
-        apigen_io_printf(stream, ": ");
+        apigen_io_print(stream, ": ");
         render_type(stream, field.type, TYPE_REFERENCE, indent + 1);
-        apigen_io_printf(stream, ",\n");
+        apigen_io_print(stream, ",\n");
       }
       flush_indent(stream, indent);
-      apigen_io_printf(stream, "}");
+      apigen_io_print(stream, "}");
       break;
 
     case apigen_typeid_opaque:
-      apigen_io_printf(stream, "opaque{}");
+      apigen_io_print(stream, "opaque{}");
       break;
 
     case apigen_typeid_alias:
@@ -321,20 +321,20 @@ bool apigen_render_zig(struct apigen_Stream const stream, struct apigen_MemoryAr
   APIGEN_NOT_NULL(diagnostics);
   APIGEN_NOT_NULL(document);
 
-  apigen_io_printf(stream, "//! THIS IS AUTOGENERATED CODE!\n\n");
+  apigen_io_print(stream, "//! THIS IS AUTOGENERATED CODE!\n\n");
 
   for(size_t i = 0; i < document->type_count; i++)
   {
     struct apigen_Type const * const type = document->types[i];
 
-    apigen_io_printf(stream, "pub const ");
+    apigen_io_print(stream, "pub const ");
     render_identifier(stream, type->name);
-    apigen_io_printf(stream, " = ");
+    apigen_io_print(stream, " = ");
     render_type(stream, type, TYPE_INSTANCE, 0);
-    apigen_io_printf(stream, ";\n\n");
+    apigen_io_print(stream, ";\n\n");
   }
 
-  apigen_io_printf(stream, "\n");
+  apigen_io_print(stream, "\n");
 
   for(size_t i = 0; i < document->variable_count; i++)
   {
@@ -346,12 +346,12 @@ bool apigen_render_zig(struct apigen_Stream const stream, struct apigen_MemoryAr
 
     apigen_io_printf(stream, "pub extern %s ", global.is_const ? "const" : "var");
     render_identifier(stream, global.name);
-    apigen_io_printf(stream, ": ");
+    apigen_io_print(stream, ": ");
     render_type(stream, global.type, TYPE_REFERENCE, 0);
-    apigen_io_printf(stream, ";\n\n");
+    apigen_io_print(stream, ";\n\n");
   }
 
-  apigen_io_printf(stream, "\n");
+  apigen_io_print(stream, "\n");
 
   for(size_t i = 0; i < document->constant_count; i++)
   {
@@ -362,16 +362,16 @@ bool apigen_render_zig(struct apigen_Stream const stream, struct apigen_MemoryAr
       render_docstring(stream, 0, constant.documentation);
     }
 
-    apigen_io_printf(stream, "pub const ");
+    apigen_io_print(stream, "pub const ");
     render_identifier(stream, constant.name);
-    apigen_io_printf(stream, ": ");
+    apigen_io_print(stream, ": ");
     render_type(stream, constant.type, TYPE_REFERENCE, 0);
-    apigen_io_printf(stream, " = ");
+    apigen_io_print(stream, " = ");
     render_value(stream, constant.value);
-    apigen_io_printf(stream, ";\n\n");
+    apigen_io_print(stream, ";\n\n");
   }
 
-  apigen_io_printf(stream, "\n");
+  apigen_io_print(stream, "\n");
 
   for(size_t i = 0; i < document->function_count; i++)
   {
@@ -381,12 +381,12 @@ bool apigen_render_zig(struct apigen_Stream const stream, struct apigen_MemoryAr
       render_docstring(stream, 0, func.documentation);
     }
 
-    apigen_io_printf(stream, "pub extern fn ");
+    apigen_io_print(stream, "pub extern fn ");
     render_identifier(stream, func.name);
 
     render_func_signature(stream, *((struct apigen_FunctionType const *)(func.type->extra)), 0);
 
-    apigen_io_printf(stream, ";\n\n");
+    apigen_io_print(stream, ";\n\n");
   }
 
   return true;

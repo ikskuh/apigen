@@ -55,7 +55,7 @@ void apigen_io_write(struct apigen_Stream stream, char const * data, size_t leng
     stream.write(stream.context, data, length);
 }
 
-void apigen_io_write_string(struct apigen_Stream stream, char const * data)
+void apigen_io_print(struct apigen_Stream stream, char const * data)
 {
     apigen_io_write(stream, data, strlen(data));
 }

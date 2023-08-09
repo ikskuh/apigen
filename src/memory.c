@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+// implementation detail:
+extern void * (*apigen_memory_alloc_backend)(size_t);
+extern void (*apigen_memory_free_backend)(void *);
+
 static size_t maxSize(size_t a, size_t b)
 {
     return (a > b) ? a : b;
@@ -36,8 +40,8 @@ struct apigen_MemoryArenaChunk
     struct apigen_MemoryArenaChunk * next;
 };
 
-static void * (*apigen_memory_alloc_backend)(size_t) = malloc;
-static void (*apigen_memory_free_backend)(void *)    = free;
+void * (*apigen_memory_alloc_backend)(size_t) = malloc;
+void (*apigen_memory_free_backend)(void *)    = free;
 
 void * apigen_alloc(size_t size)
 {
