@@ -259,6 +259,23 @@ will run the test suite and outputs the failed tests, if any.
 
 This may take a while as a lot of variants are tested.
 
+### Generate sources
+
+```sh-session
+user@host:/workspace/projects/apigen$ zig build test
+user@host:/workspace/projects/apigen$ tree zig-out
+zig-out
+├── include
+│   ├── lexer.h
+│   └── parser.h
+└── src
+    ├── lexer.c
+    └── parser.c
+user@host:/workspace/projects/apigen$
+```
+
+This will generate the headers and sources for the lexer and parser if the application should be bundled
+
 ## FAQ
 
 ### Why write in in C when there is Zig already a dependency?
