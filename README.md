@@ -242,8 +242,8 @@ With this, types can be implementation-defined and hidden from the API surface.
 ### Build
 
 ```sh-session
-user@host:/workspace/projects/apigen$ zig build install
-user@host:/workspace/projects/apigen$
+user@host:~/apigen$ zig build install
+user@host:~/apigen$
 ```
 
 will output `zig-out/bin/apigen`
@@ -251,8 +251,8 @@ will output `zig-out/bin/apigen`
 ### Tests
 
 ```sh-session
-user@host:/workspace/projects/apigen$ zig build test
-user@host:/workspace/projects/apigen$
+user@host:~/apigen$ zig build test
+user@host:~/apigen$
 ```
 
 will run the test suite and outputs the failed tests, if any.
@@ -262,19 +262,65 @@ This may take a while as a lot of variants are tested.
 ### Generate sources
 
 ```sh-session
-user@host:/workspace/projects/apigen$ zig build test
-user@host:/workspace/projects/apigen$ tree zig-out
+user@host:~/apigen$ zig build generate
+user@host:~/apigen$ tree zig-out
 zig-out
 ├── include
 │   ├── lexer.h
 │   └── parser.h
 └── src
-    ├── lexer.c
-    └── parser.c
-user@host:/workspace/projects/apigen$
+    └── parser
+        ├── lexer.yy.c
+        └── parser.yy.c
+user@host:~/apigen$
 ```
 
-This will generate the headers and sources for the lexer and parser if the application should be bundled
+This will generate the headers and sources for the lexer and parser if the application should be bundled.
+
+After that, `apigen` can also be built with any other C compiler, for example with gcc:
+
+```sh-session
+user@host:~/apigen$ gcc -o apigen -std=c11 -I include -I src -I zig-out/include src/*.c src/gen/*.c src/parser/*.c zig-out/src/parser/*.c
+user@host:~/apigen$
+```
+
+This is especially useful if you want to vendor `apigen` with your project to not introduce a dependency to `zig`, `bison` or `flex`.
+
+There is also a convenience function to bundle all sources:
+
+```sh-session
+user@host:~/apigen$ zig build bundle
+user@host:~/apigen$ tree zig-out
+zig-out/
+├── include
+│   ├── lexer.yy.h
+│   └── parser.yy.h
+└── src
+    ├── analyzer.c
+    ├── apigen.c
+    ├── base.c
+    ├── diag.c
+    ├── gen
+    │   ├── c_cpp.c
+    │   ├── go.c
+    │   ├── rust.c
+    │   └── zig.c
+    ├── io.c
+    ├── memory.c
+    ├── parser
+    │   ├── lexer.yy.c
+    │   ├── parser.c
+    │   └── parser.yy.c
+    └── type-pool.c
+user@host:~/apigen$
+```
+
+After that, `apigen` can be built with:
+
+```sh-session
+user@host:~/apigen$ gcc -o apigen zig-out/src/*.c zig-out/src/gen/*.c zig-out/src/parser/*.c -I zig-out/include -I zig-out/src
+user@host:~/apigen$
+```
 
 ## FAQ
 

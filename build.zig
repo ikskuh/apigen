@@ -9,6 +9,7 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Runs the test suite");
     const gen_step = b.step("generate", "Generates sources and headers with flex and bison.");
+    const bundle_step = b.step("bundle", "Bundles all required sources and headers into zig-out.");
 
     const lexer_gen = b.addRunArtifact(flex);
     lexer_gen.addArgs(&.{
@@ -43,10 +44,22 @@ pub fn build(b: *std.Build) void {
 
     // Also install the C sources and headers if requested:
     {
-        gen_step.dependOn(&b.addInstallFile(lexer_c_source, "src/lexer.c").step);
-        gen_step.dependOn(&b.addInstallFile(lexer_h_source, "include/lexer.h").step);
-        gen_step.dependOn(&b.addInstallFile(parser_c_source, "src/parser.c").step);
-        gen_step.dependOn(&b.addInstallFile(parser_h_source, "include/parser.h").step);
+        gen_step.dependOn(&b.addInstallFile(lexer_c_source, "src/parser/lexer.yy.c").step);
+        gen_step.dependOn(&b.addInstallFile(lexer_h_source, "include/lexer.yy.h").step);
+        gen_step.dependOn(&b.addInstallFile(parser_c_source, "src/parser/parser.yy.c").step);
+        gen_step.dependOn(&b.addInstallFile(parser_h_source, "include/parser.yy.h").step);
+    }
+
+    // If requested
+    {
+        bundle_step.dependOn(gen_step);
+        for (apigen_sources) |src_file| {
+            std.debug.assert(std.mem.startsWith(u8, src_file, "src/"));
+            bundle_step.dependOn(&b.addInstallFile(.{ .path = src_file }, src_file).step);
+        }
+
+        bundle_step.dependOn(&b.addInstallFile(.{ .path = "include/apigen.h" }, "include/apigen.h").step); // public header
+        bundle_step.dependOn(&b.addInstallFile(.{ .path = "src/parser/parser.h" }, "src/parser/parser.h").step); // internal header
     }
 
     const exe = b.addExecutable(.{
@@ -60,23 +73,7 @@ pub fn build(b: *std.Build) void {
 
     exe.linkLibC();
     exe.addIncludePath(.{ .path = "include" });
-    exe.addCSourceFiles(
-        &.{
-            "src/apigen.c",
-            "src/io.c",
-            "src/memory.c",
-            "src/base.c",
-            "src/diag.c",
-            "src/type-pool.c",
-            "src/analyzer.c",
-            "src/parser/parser.c",
-            "src/gen/c_cpp.c",
-            "src/gen/rust.c",
-            "src/gen/zig.c",
-            "src/gen/go.c",
-        },
-        &strict_cflags,
-    );
+    exe.addCSourceFiles(&apigen_sources, &strict_cflags);
 
     // both require access to "parser.h":
     const local_include = [_][]const u8{ "-I", b.pathFromRoot("src") };
@@ -188,6 +185,21 @@ pub fn build(b: *std.Build) void {
         }
     }
 }
+
+const apigen_sources = [_][]const u8{
+    "src/apigen.c",
+    "src/io.c",
+    "src/memory.c",
+    "src/base.c",
+    "src/diag.c",
+    "src/type-pool.c",
+    "src/analyzer.c",
+    "src/parser/parser.c",
+    "src/gen/c_cpp.c",
+    "src/gen/rust.c",
+    "src/gen/zig.c",
+    "src/gen/go.c",
+};
 
 const general_examples = [_][]const u8{
     "examples/apigen.api",
