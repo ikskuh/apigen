@@ -56,6 +56,7 @@ int yyerror(
 %token KW_STRUCT
 %token KW_CONSTEXPR
 %token KW_OPAQUE
+%token KW_INCLUDE
 
 %type <plain_text> docs
 %type <value> value
@@ -76,6 +77,8 @@ int yyerror(
 %type <type> function_type
 %type <type> function_signature
 
+%type <value> include_file
+
 %type <declaration> declaration
 %type <file>        declaration_list
 
@@ -83,11 +86,18 @@ int yyerror(
 
 file:
     declaration_list { parser_state->top_level_declarations = $1; }
+|                    { parser_state->top_level_declarations = &EMPTY_DOCUMENT_SENTINEL; }
 ;
 
 declaration_list:
-    declaration                  { $$ = apigen_parser_file_init(parser_state, $1); }
-|   declaration_list declaration { $$ = apigen_parser_file_append(parser_state, $1, $2); }
+    declaration                   { $$ = apigen_parser_file_init(parser_state,    $1); }
+|   include_file                  { $$ = apigen_parser_file_include(parser_state, yyloc, NULL, ($1).value_str); }
+|   declaration_list declaration  { $$ = apigen_parser_file_append(parser_state,  $1,    $2); }
+|   declaration_list include_file { $$ = apigen_parser_file_include(parser_state, yyloc, $1,   ($2).value_str); }
+;
+
+include_file:
+    KW_INCLUDE STRING ';' { $$ = $2; }
 ;
 
 declaration:

@@ -276,13 +276,39 @@ static struct CliOptions parse_options_or_exit(int argc, char ** argv)
     return options;
 }
 
+static bool open_file_from_cwd(struct apigen_ParserState * state, char const * path)
+{
+    if (apigen_streq(path, "-")) {
+        state->file      = apigen_io_stdin;
+        state->file_name = "stdin";
+        return true;
+    }
+    
+    state->file_name = path;
+    if(!apigen_io_open_file_read(state->source_dir, path, &state->file)) {
+        fprintf(stderr, "error: could not open %s!\n", state->file_name);
+        return false;
+    }
+
+    char * const dirname = apigen_io_dirname(path);
+    if(dirname != NULL) {
+        if(!apigen_io_open_dir(state->source_dir, dirname, &state->source_dir)) {
+            return false;
+        }
+        apigen_free(dirname);
+    }
+
+    return true;
+}
+
 static int regular_invocation(
     struct apigen_MemoryArena * const arena,
     struct apigen_Diagnostics * const diagnostics,
     struct CliOptions const * const   options)
 {
     struct apigen_ParserState state = {
-        .file        = stdin,
+        .source_dir  = apigen_io_cwd(),
+        .file        = apigen_io_null,
         .file_name   = "stdin",
         .ast_arena   = arena,
         .line_feed   = "\r\n",
@@ -294,17 +320,8 @@ static int regular_invocation(
         return EXIT_FAILURE;
     }
 
-    if (apigen_streq(options->positionals[0], "-")) {
-        state.file      = stdin;
-        state.file_name = "stdin";
-    }
-    else {
-        state.file      = fopen(options->positionals[0], "rb");
-        state.file_name = options->positionals[0];
-        if (state.file == NULL) {
-            fprintf(stderr, "error: could not open %s!\n", state.file_name);
-            return EXIT_FAILURE;
-        }
+    if(!open_file_from_cwd(&state, options->positionals[0])) {
+        return EXIT_FAILURE;
     }
 
     bool ok = apigen_parse(&state);
@@ -326,7 +343,7 @@ static int regular_invocation(
                 }
             }
 
-            struct apigen_Stream out_stream = apigen_io_file_stream(output);
+            struct apigen_Stream out_stream = apigen_io_from_stream(output);
 
             switch (options->language) {
                 case LANG_C:
@@ -352,9 +369,8 @@ static int regular_invocation(
         }
     }
 
-    if (state.file != stdin) {
-        fclose(state.file);
-    }
+    apigen_io_close(&state.file);
+    apigen_io_close_dir(&state.source_dir);
 
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
@@ -466,18 +482,23 @@ static int test_runner(
     }
 
     struct CodeArray const expectations = parse_expectations_from_file(arena, f);
+    
+    fclose(f);
 
     struct apigen_ParserState state = {
-        .file        = f,
-        .file_name   = options->positionals[0],
+        .source_dir  = apigen_io_cwd(),
+        .file        = apigen_io_null,
+        .file_name   = NULL,
         .ast_arena   = arena,
         .line_feed   = "\r\n",
         .diagnostics = diagnostics,
     };
 
-    bool ok = apigen_parse(&state);
+    if(!open_file_from_cwd(&state, options->positionals[0])) {
+        return EXIT_FAILURE;
+    }
 
-    fclose(f);
+    bool ok = apigen_parse(&state);
 
     if (ok && (options->test_mode >= TEST_MODE_ANALYZER)) {
         struct apigen_Document document;

@@ -8,20 +8,16 @@ pub fn build(b: *std.Build) void {
     const flex = flex_dep.artifact("flex");
 
     const test_step = b.step("test", "Runs the test suite");
+<<<<<<< HEAD
     const gen_step = b.step("generate", "Generates sources and headers with flex and bison.");
     const bundle_step = b.step("bundle", "Bundles all required sources and headers into zig-out.");
+=======
+    const unittest_step = b.step("unittest", "Runs the unit tests");
+>>>>>>> 1276162 (Implements unit tests and adds support for include files.)
 
     const lexer_gen = b.addRunArtifact(flex);
     lexer_gen.addArgs(&.{
         "--hex", //  use hexadecimal numbers instead of octal in debug outputs
-        "--8bit", // generate 8-bit scanner
-        "--batch", // generate batch scanner
-        "--yylineno", //  track line count in yylineno
-        "--prefix=apigen_parser_", // custom prefix instead of yy
-        "--reentrant", // generate a reentrant C scanner
-        "--nounistd", //  do not include <unistd.h>
-        "--bison-locations", // include yylloc support.
-        "--bison-bridge", // scanner for bison pure parser.
     });
     const lexer_c_source = lexer_gen.addPrefixedOutputFileArg("--outfile=", "lexer.yy.c");
     const lexer_h_source = lexer_gen.addPrefixedOutputFileArg("--header-file=", "lexer.yy.h");
@@ -170,18 +166,30 @@ pub fn build(b: *std.Build) void {
 
         {
             const test_runner = b.addExecutable(.{
-                .name = "apidef-arena-test",
+                .name = "apidef-unit-test",
                 .target = target,
                 .optimize = .Debug, // always run tests in debug modes
             });
             test_runner.linkLibC();
             test_runner.addIncludePath(.{ .path = "include" });
             test_runner.addCSourceFiles(
-                &.{ "tests/arena.c", "src/base.c", "src/memory.c" },
+                &.{
+                    "tests/unit/test-runner.c",
+                    "tests/unit/arena.c",
+                    "tests/unit/framework.c",
+                    "tests/unit/io.c",
+
+                    "src/base.c",
+                    "src/memory.c",
+                    "src/io.c",
+                },
                 &strict_cflags,
             );
 
-            test_step.dependOn(&b.addRunArtifact(test_runner).step);
+            const unit_test_run = b.addRunArtifact(test_runner);
+
+            test_step.dependOn(&unit_test_run.step);
+            unittest_step.dependOn(&unit_test_run.step);
         }
     }
 }
@@ -231,6 +239,7 @@ const parser_test_files = [_][]const u8{
 } ++ general_examples;
 
 const analyzer_positive_files = [_][]const u8{
+    "tests/analyzer/ok/empty.api",
     "tests/analyzer/ok/nested-types.api",
     "tests/analyzer/ok/forward-ref.api",
     "tests/analyzer/ok/arrays.api",
@@ -248,6 +257,8 @@ const analyzer_positive_files = [_][]const u8{
     "tests/analyzer/ok/constexpr-strings.api",
     "tests/analyzer/ok/constexpr-decl.api",
     "tests/analyzer/ok/enum-negative-nums.api",
+    "tests/analyzer/ok/include.api",
+    "tests/analyzer/ok/nested-include.api",
 };
 
 const analyzer_negative_files = [_][]const u8{

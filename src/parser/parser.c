@@ -7,6 +7,8 @@
 #include "parser.yy.h"
 #pragma clang diagnostic pop
 
+struct apigen_ParserDeclaration EMPTY_DOCUMENT_SENTINEL;
+
 bool apigen_parse(struct apigen_ParserState * state)
 {
     APIGEN_NOT_NULL(state);
@@ -15,8 +17,7 @@ bool apigen_parse(struct apigen_ParserState * state)
 
     {
         yyscan_t scanner;
-        apigen_parser_lex_init(&scanner);
-        apigen_parser_set_in(state->file, scanner);
+        apigen_parser_lex_init_extra (state, &scanner);
 
         int const lex_result = apigen_parser_parse(scanner, state);
 
@@ -27,10 +28,191 @@ bool apigen_parse(struct apigen_ParserState * state)
         }
     }
 
-    APIGEN_ASSERT(state->top_level_declarations != NULL);
+    if(state->top_level_declarations == &EMPTY_DOCUMENT_SENTINEL) {
+        state->top_level_declarations = NULL;
+    }
+    else {
+        APIGEN_ASSERT(state->top_level_declarations != NULL);
+    }
 
     return true;
 }
+
+static bool validate_include_path(char const * include_file_name)
+{
+    // see this:
+    // https://stackoverflow.com/a/31976060
+
+    // only lega characters in a file name are basic path symbols, 
+    // and forward slashes (`/`). This way, we can keep the files portable
+    // between platforms and windowqs users won't accidently use `\` for paths.
+    //
+    // we also disallow absolute paths for the same reasoning.
+
+    APIGEN_NOT_NULL(include_file_name);
+
+    char const * c = include_file_name;
+
+    // We do not allow absolute paths in any case:
+    if(*c == '\\' || *c == '/')
+        return false;
+
+    bool last_is_illegal = false;
+    while(*c) {
+
+        if((*c) < 0x20) {
+            // Control characters
+            return false;
+        }
+
+        switch(*c) {
+            case '<': return false; // less than
+            case '>': return false; // greater than
+            case ':': return false; // colon - sometimes works, but is actually NTFS Alternate Data Streams
+            case '"': return false; // double quote
+            case '\\': return false; // backslash
+            case '|': return false; // vertical bar or pipe
+            case '?': return false; // question mark
+            case '*': return false; // asterisk
+        }
+
+        last_is_illegal = (*c == ' ') || (*c == '.'); // not legal on windows
+
+        c += 1;
+    }   
+    if(last_is_illegal) {
+        return false;
+    }
+
+    return true;
+}
+
+static void split_include_path(char const * include_path, size_t * name_head)
+{
+    APIGEN_NOT_NULL(include_path);
+    APIGEN_NOT_NULL(name_head);
+
+    size_t i = 0;
+    while(true) {
+        char c = include_path[i];
+        if(c == 0) {
+            *name_head = 0;
+            return;
+        } else if(c == '/') {
+            APIGEN_ASSERT(i > 0); // otherwise it would be an absolute path!
+            *name_head = i + 1;
+            return;
+        }
+        i += 1;
+    }
+}
+
+struct apigen_ParserDeclaration * apigen_parser_file_include(
+    struct apigen_ParserState * outer_state, 
+    struct apigen_ParserLocation location, 
+    struct apigen_ParserDeclaration * previous_decls,
+    char const * include_path
+)
+{
+    APIGEN_NOT_NULL(outer_state);
+    APIGEN_NOT_NULL(include_path);
+
+    if(!validate_include_path(include_path)) {
+        apigen_diagnostics_emit(
+            outer_state->diagnostics, 
+            outer_state->file_name,
+            location.first_line,
+            location.first_column,
+            apigen_error_invalid_include_path, 
+            include_path
+        );
+        return previous_decls; // continue lexing, but emit error
+    }
+
+    struct apigen_ParserState inner_state = {
+        .source_dir = {0},
+
+        .file      = {0},
+        .file_name = 0, 
+
+        .ast_arena = outer_state->ast_arena,
+        .line_feed = outer_state->line_feed,
+        
+        .diagnostics = outer_state->diagnostics,
+        
+        .top_level_declarations = NULL,
+    };
+
+    size_t filename_offset;
+    split_include_path(include_path, &filename_offset);
+    
+    char const * include_file_name = include_path + filename_offset;
+    
+    bool dir_ok;
+    if(filename_offset > 0) {
+        char * const directory_path = apigen_alloc(filename_offset + 1);
+        memcpy(directory_path, include_path, filename_offset);
+        directory_path[filename_offset] = 0;
+
+        dir_ok = apigen_io_open_dir(outer_state->source_dir, directory_path, &inner_state.source_dir);
+        
+        apigen_free(directory_path);
+    }
+    else {
+        dir_ok = apigen_io_open_dir(outer_state->source_dir, ".", &inner_state.source_dir);
+    }
+    
+    if(!dir_ok || !apigen_io_open_file_read(inner_state.source_dir, include_file_name, &inner_state.file)) {
+        apigen_diagnostics_emit(
+            outer_state->diagnostics, 
+            outer_state->file_name,
+            location.first_line,
+            location.first_column,
+            apigen_error_missing_include_file,
+            include_path
+        );
+        return previous_decls; // continue lexing, but emit error
+    }
+
+    
+    yyscan_t scanner;
+    apigen_parser_lex_init_extra (&inner_state, &scanner);
+
+    int const lex_result = apigen_parser_parse(scanner, &inner_state);
+
+    apigen_parser_lex_destroy(scanner);
+
+    apigen_io_close(&inner_state.file); 
+    apigen_io_close_dir(&inner_state.source_dir); 
+
+    if (lex_result != 0) {
+        return previous_decls;
+    }
+    
+    
+    if(inner_state.top_level_declarations == &EMPTY_DOCUMENT_SENTINEL) {
+        return previous_decls; // list was empty, we can safely return the same as before
+    }
+    else {
+        APIGEN_ASSERT(inner_state.top_level_declarations != NULL);
+        
+        
+        if(previous_decls != NULL) {
+            struct apigen_ParserDeclaration * tail = previous_decls;
+            while(tail->next != NULL) {
+                tail = tail->next;
+            }
+            // Attach parsed items to tail:
+            tail->next = inner_state.top_level_declarations;
+            return previous_decls;
+        }
+        else {
+            // We are now HEAD of the list
+            return inner_state.top_level_declarations;
+        }
+    }
+}
+
 
 struct apigen_Value apigen_parser_conv_regular_str(struct apigen_ParserState * state, char const * literal)
 {
@@ -169,11 +351,14 @@ char const * apigen_parser_concat_doc_strings(struct apigen_ParserState * state,
     _ListItem * _Prefix##_append(struct apigen_ParserState * state, _ListItem * list, _ListItem item) \
     {                                                                                                 \
         APIGEN_NOT_NULL(state);                                                                       \
-        APIGEN_NOT_NULL(list);                                                                        \
                                                                                                       \
         _ListItem * new_item = apigen_memory_arena_alloc(state->ast_arena, sizeof(_ListItem));        \
         *new_item            = item;                                                                  \
         new_item->next       = NULL;                                                                  \
+                                                                                                      \
+        if (list == NULL) {                                                                           \
+            return new_item;                                                                          \
+        }                                                                                             \
                                                                                                       \
         _ListItem * iter = list;                                                                      \
         while (iter->next != NULL) {                                                                  \

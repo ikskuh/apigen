@@ -80,7 +80,7 @@ const errno: c_int; // declares an external, immutable variable
 constexpr pi: f32 = 10; // declares a global, api-wide constant value
 
 // external functions can be defined like this:
-fn square(i: i32) i32;
+fn square(I: i32) i32;
 
 // documentation can be applied to everything that declares something:
 
@@ -234,7 +234,7 @@ With this, types can be implementation-defined and hidden from the API surface.
 ### Dependencies
 
 - [`zig`](https://ziglang.org/download/), at least 0.11.0-dev.3258 or later
-- [`flex`](https://github.com/westes/flex), at least version 2.6.4
+- [`flex`](https://github.com/westes/flex), at least version 2.6.4 (shipped with package manager)
 - [`bison`](https://www.gnu.org/software/bison/), at least version 3.8.2
 
 ### Build Commands

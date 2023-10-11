@@ -960,8 +960,6 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
     APIGEN_NOT_NULL(state);
     APIGEN_NOT_NULL(out_document);
 
-    APIGEN_ASSERT(state->top_level_declarations != NULL);
-
     *out_document = (struct apigen_Document) {
         .type_pool = {
             .arena = state->ast_arena,
@@ -1005,6 +1003,9 @@ bool apigen_analyze(struct apigen_ParserState * const state, struct apigen_Docum
                 case apigen_parser_type_declaration:
                     out_document->type_count += 1;
                     break;
+
+                case apigen_parser_include_declaration:
+                    apigen_panic("Document contains unresolved include paths!");
             }
             decl = decl->next;
         }

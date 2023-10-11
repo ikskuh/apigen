@@ -88,6 +88,7 @@ enum apigen_ParserDeclarationKind
     apigen_parser_constexpr_declaration,
     apigen_parser_fn_declaration,
     apigen_parser_type_declaration,
+    apigen_parser_include_declaration,
 };
 
 struct apigen_ParserDeclaration
@@ -98,6 +99,7 @@ struct apigen_ParserDeclaration
     struct apigen_ParserType          type;
     struct apigen_Value               initial_value;
     struct apigen_ParserLocation      location;
+    char const *                      include_path;
 
     struct apigen_ParserDeclaration * next;
 
@@ -121,6 +123,9 @@ union apigen_ParserAstNode
 typedef struct apigen_ParserLocation YYLTYPE;
 typedef union apigen_ParserAstNode   YYSTYPE;
 
+// This value is a sentinel value returned by apigen_parser_parse to signal an empty file:
+extern struct apigen_ParserDeclaration EMPTY_DOCUMENT_SENTINEL;
+
 struct apigen_Value apigen_parser_conv_regular_str(struct apigen_ParserState * state, char const * literal);
 struct apigen_Value apigen_parser_conv_multiline_str(struct apigen_ParserState * state, char const * literal);
 struct apigen_Value apigen_parser_concat_multiline_strs(struct apigen_ParserState * state, struct apigen_Value str1, struct apigen_Value str2);
@@ -135,6 +140,8 @@ struct apigen_ParserField * apigen_parser_field_list_append(struct apigen_Parser
 
 struct apigen_ParserDeclaration * apigen_parser_file_init(struct apigen_ParserState * state, struct apigen_ParserDeclaration item);
 struct apigen_ParserDeclaration * apigen_parser_file_append(struct apigen_ParserState * state, struct apigen_ParserDeclaration * list, struct apigen_ParserDeclaration item);
+
+struct apigen_ParserDeclaration * apigen_parser_file_include(struct apigen_ParserState * state, struct apigen_ParserLocation location, struct apigen_ParserDeclaration * list, char const * file_path);
 
 char const * apigen_parser_conv_at_ident(struct apigen_ParserState * state, char const * at_identifier);
 

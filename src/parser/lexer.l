@@ -26,17 +26,50 @@
         } \
     }
 
+// https://ftp.gnu.org/old-gnu/Manuals/flex-2.5.4/html_node/flex_10.html#SEC10
+#define YY_INPUT(buf, result, max_size)                                             \
+    {                                                                               \
+        struct apigen_ParserState * const parser_state = yyget_extra(yyscanner);    \
+        APIGEN_NOT_NULL(parser_state);                                              \
+        size_t count = apigen_io_read(parser_state->file, buf, max_size);           \
+        result = (count > 0) ? count : YY_NULL ;                                    \
+    }
 
 typedef struct apigen_ParserLocation YYLTYPE;
 typedef union  apigen_ParserAstNode YYSTYPE;
 %}
 
-%option reentrant stack noyywrap
-%option never-interactive
+
+/* generate 8-bit scanner */
+%option 8bit                  
+/* generate batch scanner */
+%option batch                 
+/* track line count in yylineno */
+%option yylineno              
+/* custom prefix instead of yy */
+%option prefix="apigen_parser_"
+/* generate a reentrant C scanner */
+%option reentrant             
+/* do not include <unistd.h> */
+%option nounistd              
+/* include yylloc support. */
+%option bison-locations       
+/* scanner for bison pure parser. */
+%option bison-bridge          
+
+/* supress generation of main() function */
+%option nomain                
+%option nodefault
+/* enables the use of start condition stacks (see Start Conditions). */
+%option stack                 
+/* instructs flex to generate a scanner which never considers its input interactive. */
+%option never-interactive     
 
 %option nounput
 %option noinput
-%option yylineno
+
+/* files cannot wrap into other files */
+%option noyywrap
 
 ident   [A-Za-z_][A-Za-z0-9_]*
 atident @\"[^\"]+\"
@@ -73,6 +106,7 @@ enum            { return KW_ENUM; }
 union           { return KW_UNION; }
 struct          { return KW_STRUCT; }
 opaque          { return KW_OPAQUE; }
+include         { return KW_INCLUDE; }
 
 "*"             { return yytext[0]; }
 "["             { return yytext[0]; }

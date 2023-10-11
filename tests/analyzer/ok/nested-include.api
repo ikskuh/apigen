@@ -1,0 +1,3 @@
+include "inc/down.api";
+
+type very_outer_type = *const outer_type;

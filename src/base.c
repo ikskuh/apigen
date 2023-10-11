@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void APIGEN_NORETURN apigen_panic(char const *msg)
+void APIGEN_NORETURN APIGEN_WEAK apigen_panic(char const *msg)
 {
     (void)fprintf(stderr, "\r\nAPIGEN PANIC: %s\r\n\r\n", msg);
     (void)fflush(stderr);

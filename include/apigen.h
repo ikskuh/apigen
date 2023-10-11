@@ -9,8 +9,14 @@
 #define APIGEN_STR(_X)  #_X
 #define APIGEN_SSTR(_X) APIGEN_STR(_X)
 
-#define APIGEN_NORETURN      __attribute__((noreturn))
-#define APIGEN_UNREACHABLE() __builtin_unreachable()
+#define APIGEN_NORETURN             __attribute__((noreturn))
+#define APIGEN_CONSTRUCTOR          __attribute__((constructor))
+#define APIGEN_DESTRUCTOR           __attribute__((destructor))
+#define APIGEN_UNUSED               __attribute__((unused))
+#define APIGEN_WEAK                 __attribute__((weak))
+#define APIGEN_LINKSECTION(_Name)   __attribute__ ((section(_Name)))
+
+#define APIGEN_UNREACHABLE()        __builtin_unreachable()
 
 #define APIGEN_PRINTFLIKE(StrIndex, FirstVarIndex) __attribute__((format(printf, StrIndex, FirstVarIndex)))
 #define APIGEN_VPRINTFLIKE(StrIndex)               APIGEN_PRINTFLIKE(StrIndex, 0)
@@ -28,27 +34,63 @@
             apigen_panic(__FILE__ ":" APIGEN_SSTR(__LINE__) ":Assertion failure: " #_Cond " did not assert!"); \
     } while (false)
 
-struct apigen_Stream
-{
-    void * context;
-    void (*write)(void * context, char const * data, size_t length);
-};
 
 void APIGEN_NORETURN apigen_panic(char const * msg);
 
 bool apigen_starts_with(char const * str1, char const * str2);
 bool apigen_streq(char const * str1, char const * str2);
 
+// I/O library:
+
+struct apigen_Stream;
+
+enum apigen_FileMode {
+    APIGEN_IO_INPUT = 0,
+    APIGEN_IO_OUTPUT = 1,
+};
+
+struct apigen_Directory
+{
+    void * context;
+    bool (*openDir)(void * context, char const * file_name, struct apigen_Directory * out_dir);
+    bool (*openFile)(void * context, enum apigen_FileMode mode, char const * file_name, struct apigen_Stream * out_file);
+    void (*close)(void * context);
+};
+
+struct apigen_Stream
+{
+    void * context;
+    void (*write)(void * context, char const * data, size_t length);
+    size_t (*read)(void * context, char * data, size_t length);
+    void (*close)(void * context);
+};
+
+// Predefined files:
+extern struct apigen_Stream const apigen_io_stdin;
 extern struct apigen_Stream const apigen_io_stdout;
 extern struct apigen_Stream const apigen_io_stderr;
 extern struct apigen_Stream const apigen_io_null;
 
-struct apigen_Stream apigen_io_file_stream(FILE * file);
+// open the current directory
+struct apigen_Directory apigen_io_cwd(void);
+bool apigen_io_open_file_read(struct apigen_Directory parent, char const * path, struct apigen_Stream * out_stream);
+bool apigen_io_open_file_write(struct apigen_Directory parent, char const * path, struct apigen_Stream * out_stream);
+bool apigen_io_open_dir(struct apigen_Directory parent, char const * path, struct apigen_Directory * out_dir);
+void apigen_io_close_dir(struct apigen_Directory * dir);
+
+struct apigen_Stream apigen_io_from_stream(FILE * file);
+void apigen_io_close(struct apigen_Stream * stream);
 
 void apigen_io_write(struct apigen_Stream stream, char const * data, size_t length);
 void apigen_io_printf(struct apigen_Stream stream, char const * format, ...) APIGEN_PRINTFLIKE(2, 3);
 void apigen_io_vprintf(struct apigen_Stream stream, char const * format, va_list list) APIGEN_VPRINTFLIKE(2);
 void apigen_io_print(struct apigen_Stream stream, char const * data);
+
+size_t apigen_io_read(struct apigen_Stream stream, char * data, size_t length);
+
+
+char * apigen_io_dirname(char const * path); // returned memory must be freed with apigen_free, returns NULL if no dirname is present.
+
 
 // generic values:
 
@@ -303,7 +345,9 @@ struct apigen_ParserDeclaration;
 
 struct apigen_ParserState
 {
-    FILE *                      file;
+    struct apigen_Directory     source_dir;
+
+    struct apigen_Stream        file;
     char const *                file_name;
     struct apigen_MemoryArena * ast_arena;
     char const *                line_feed; ///< used for multiline strings
@@ -334,6 +378,7 @@ bool apigen_analyze(struct apigen_ParserState * state, struct apigen_Document * 
 
 // clang-format: off
 // Expects _Mac(Symbol, ID, Format String)
+<<<<<<< HEAD
 #define APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(_Mac)                                                                                                                \
 _Mac(apigen_error_array_size_not_uint,     1000, "Array size is not an unsigend integer")                                                                          \
 _Mac(apigen_error_duplicate_field,         1001, "Struct or enumeration already contains a member with the name '%s'")                                                 \
@@ -357,6 +402,34 @@ _Mac(apigen_warning_enum_int_undefined,    6000, "Chosen enum backing type %s ha
 _Mac(apigen_warning_struct_empty,          6001, "An empty struct or union can be defined, but is not guaranteed to be portable between platforms or compilers")        \
 _Mac(apigen_warning_constexpr_unchecked,   6002, "Constant '%s' could not be checked as it uses a platform-specified type. This constant might not be portable")
 // clang-format: on
+=======
+// clang-format off
+#define APIGEN_EXPAND_DIAGNOSTIC_CODE_SET(_Mac)                                                                                                                   \
+_Mac(apigen_error_array_size_not_uint,      1000, "Array size is not an unsigend integer")                                                                        \
+_Mac(apigen_error_duplicate_field,          1001, "Struct or enumeration already contains a member with the name '%s'")                                           \
+_Mac(apigen_error_duplicate_parameter,      1002, "A parameter with the name '%s' already exists")                                                                \
+_Mac(apigen_error_duplicate_enum_item,      1003, "An enumeration member with the name 's' already exists")                                                       \
+_Mac(apigen_error_duplicate_enum_value,     1004, "Enumeration member '%s' has value %s, which is already assigned to enumeration member '%s'")                   \
+_Mac(apigen_error_enum_out_of_range,        1005, "Value %s is out of range for enumeration member '%s'")                                                         \
+_Mac(apigen_error_enum_value_illegal,       1006, "Enumeration member '%s' has a non-integer value")                                                              \
+_Mac(apigen_error_duplicate_symbol,         1007, "The symbol '%s' is already declared")                                                                          \
+_Mac(apigen_error_syntax_error,             1008, "Syntax error at symbol '%s': %s")                                                                              \
+_Mac(apigen_error_undeclared_identifier,    1009, "Undeclared identifier '%s'")                                                                                   \
+_Mac(apigen_error_unresolved_symbols,       1010, "Found %zu cyclic dependencies or undeclared types")                                                            \
+_Mac(apigen_error_enum_type_must_be_int,    1011, "Enum backing type must be an integer")                                                                         \
+_Mac(apigen_error_enum_empty,               1012, "Enums must contain at least one item")                                                                         \
+_Mac(apigen_error_constexpr_type_mismatch,  1013, "The value assigned to constant '%s' does not match its type")                                                  \
+_Mac(apigen_error_constexpr_out_of_range,   1014, "The value assigned to constant '%s' is out of range")                                                          \
+_Mac(apigen_error_constexpr_illegal_type,   1015, "The constant '%s' is declared with an unsupported type")                                                       \
+_Mac(apigen_error_invalid_include_path,     1016, "The include path '%s' is not valid.")                                                                          \
+_Mac(apigen_error_missing_include_file,     1017, "The include path '%s' does not exist.")                                                                        \
+_Mac(apigen_error_internal,                 5999, "Internal compiler error")                                                                                      \
+                                                                                                                                                                  \
+_Mac(apigen_warning_enum_int_undefined,     6000, "Chosen enum backing type %s has no well-defined range. Generated code may not be portable")                    \
+_Mac(apigen_warning_struct_empty,           6001, "An empty struct or union can be defined, but is not guaranteed to be portable between platforms or compilers") \
+_Mac(apigen_warning_constexpr_unchecked,    6002, "Constant '%s' could not be checked as it uses a platform-specified type. This constant might not be portable")
+// clang-format on
+>>>>>>> 1276162 (Implements unit tests and adds support for include files.)
 
 enum apigen_DiagnosticCode
 {
