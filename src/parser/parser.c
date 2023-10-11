@@ -31,9 +31,6 @@ bool apigen_parse(struct apigen_ParserState * state)
     if(state->top_level_declarations == &EMPTY_DOCUMENT_SENTINEL) {
         state->top_level_declarations = NULL;
     }
-    else {
-        APIGEN_ASSERT(state->top_level_declarations != NULL);
-    }
 
     return true;
 }
@@ -312,6 +309,37 @@ struct apigen_Value apigen_parser_concat_multiline_strs(struct apigen_ParserStat
     return (struct apigen_Value){.type = apigen_value_str, .value_str = output_string};
 }
 
+char const * apigen_parser_create_doc_string(struct apigen_ParserState * state, char const * str1)
+{
+    APIGEN_NOT_NULL(state);
+    APIGEN_NOT_NULL(str1);
+
+    size_t len = strlen(str1);
+    APIGEN_ASSERT(len >= 3); // must start with '///'
+
+    APIGEN_ASSERT(str1[0] == '/');
+    APIGEN_ASSERT(str1[1] == '/');
+    APIGEN_ASSERT(str1[2] == '/');
+    len -= 3;
+
+    char const * text = str1 + 3;
+    if(len > 0 && text[0] == ' ') {
+        len -= 1;
+        text += 1;
+    }
+
+    if(len == 0) {
+        return "";
+    }
+
+    char * const output_string = apigen_memory_arena_alloc(state->ast_arena, len + 1);
+    memcpy(output_string, text, len);
+    output_string[len] = 0;
+
+    return output_string;
+
+}
+
 char const * apigen_parser_concat_doc_strings(struct apigen_ParserState * state, char const * str1, char const * str2)
 {
     APIGEN_NOT_NULL(state);
@@ -324,9 +352,9 @@ char const * apigen_parser_concat_doc_strings(struct apigen_ParserState * state,
     size_t const str1_len = strlen(str1);
     size_t const str2_len = strlen(str2);
 
-    size_t const total_len = lf_len + str1_len + str2_len + 1;
+    size_t const total_len = lf_len + str1_len + str2_len;
 
-    char * const output_string = apigen_memory_arena_alloc(state->ast_arena, total_len);
+    char * const output_string = apigen_memory_arena_alloc(state->ast_arena, total_len + 1);
 
     memcpy(output_string, str1, str1_len);
     memcpy(output_string + str1_len, line_feed, lf_len);

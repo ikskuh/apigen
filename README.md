@@ -69,6 +69,9 @@ The following docs use `T` as a placeholder for arbitrary other types, `N` is us
 
 ```zig
 
+// include declarations from another file as well, path is always relative, uses / for file separation.
+include "other/folder/code.api";
+
 /// documentation comment for the following thing:
 type MyTypeName = T;
 

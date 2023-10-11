@@ -130,6 +130,7 @@ struct apigen_Value apigen_parser_conv_regular_str(struct apigen_ParserState * s
 struct apigen_Value apigen_parser_conv_multiline_str(struct apigen_ParserState * state, char const * literal);
 struct apigen_Value apigen_parser_concat_multiline_strs(struct apigen_ParserState * state, struct apigen_Value str1, struct apigen_Value str2);
 
+char const * apigen_parser_create_doc_string(struct apigen_ParserState * state, char const * str1);
 char const * apigen_parser_concat_doc_strings(struct apigen_ParserState * state, char const * str1, char const * str2);
 
 struct apigen_ParserEnumItem * apigen_parser_enum_item_list_init(struct apigen_ParserState * state, struct apigen_ParserEnumItem item);

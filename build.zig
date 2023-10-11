@@ -8,12 +8,11 @@ pub fn build(b: *std.Build) void {
     const flex = flex_dep.artifact("flex");
 
     const test_step = b.step("test", "Runs the test suite");
-<<<<<<< HEAD
+
     const gen_step = b.step("generate", "Generates sources and headers with flex and bison.");
     const bundle_step = b.step("bundle", "Bundles all required sources and headers into zig-out.");
-=======
+
     const unittest_step = b.step("unittest", "Runs the unit tests");
->>>>>>> 1276162 (Implements unit tests and adds support for include files.)
 
     const lexer_gen = b.addRunArtifact(flex);
     lexer_gen.addArgs(&.{
@@ -233,6 +232,7 @@ const parser_test_files = [_][]const u8{
     "tests/parser/enumdocs.api",
     "tests/parser/structdocs.api",
     "tests/parser/uniondocs.api",
+    "tests/parser/empty-doc.api",
 
     // extra
     "tests/parser/paxfuncs.api",
@@ -259,6 +259,7 @@ const analyzer_positive_files = [_][]const u8{
     "tests/analyzer/ok/enum-negative-nums.api",
     "tests/analyzer/ok/include.api",
     "tests/analyzer/ok/nested-include.api",
+    "tests/analyzer/ok/empty-include.api",
 };
 
 const analyzer_negative_files = [_][]const u8{

@@ -41,11 +41,13 @@ static void render_docstring(struct apigen_Stream const stream, size_t indent, c
   {
     size_t l = 0;
     bool lf = false;
-    for(l = 0; docstring[l]; l++) {
+
+    while(docstring[l]) {
       if(docstring[l] == '\n') {
         lf = true;
         break;
       }
+      l += 1;
     }
 
     flush_indent(stream, indent);
@@ -57,7 +59,7 @@ static void render_docstring(struct apigen_Stream const stream, size_t indent, c
       break;
     }
 
-    docstring += (l + 1);
+    docstring += (l+1);
   }
 }
 

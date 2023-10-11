@@ -88,7 +88,7 @@ multiline_str   \\\\[^\n]*
 
 %%
 
-"///"[^\n]*     { yylval->plain_text = apigen_memory_arena_dupestr(parser_state->ast_arena, yytext + 4); return DOCCOMMENT; }
+"///"[^\n]*     { yylval->plain_text = apigen_parser_create_doc_string(parser_state, yytext); return DOCCOMMENT; }
 
 "//"[^\n]*      { }
 
