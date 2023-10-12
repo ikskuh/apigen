@@ -54,6 +54,7 @@ pub fn build(b: *std.Build) void {
         }
 
         bundle_step.dependOn(&b.addInstallFile(.{ .path = "include/apigen.h" }, "include/apigen.h").step); // public header
+        bundle_step.dependOn(&b.addInstallFile(.{ .path = "src/apigen-internals.h" }, "include/apigen-internals.h").step); // public header
         bundle_step.dependOn(&b.addInstallFile(.{ .path = "src/parser/parser.h" }, "src/parser/parser.h").step); // internal header
     }
 
@@ -61,6 +62,7 @@ pub fn build(b: *std.Build) void {
         .name = "apigen",
         .target = target,
         .optimize = optimize,
+        .root_source_file = .{ .path = "src/debug-support.zig" },
     });
 
     exe.addIncludePath(BuildHelper.getPathDir(lexer_h_source));
@@ -170,9 +172,11 @@ pub fn build(b: *std.Build) void {
                 .name = "apidef-unit-test",
                 .target = target,
                 .optimize = .Debug, // always run tests in debug modes
+                .root_source_file = .{ .path = "src/debug-support.zig" },
             });
             test_runner.linkLibC();
             test_runner.addIncludePath(.{ .path = "include" });
+            test_runner.addIncludePath(.{ .path = "src" }); // unit tests may access internals
             test_runner.addCSourceFiles(
                 &.{
                     "tests/unit/test-runner.c",
@@ -198,11 +202,13 @@ pub fn build(b: *std.Build) void {
 
 const apigen_sources = [_][]const u8{
     "src/apigen.c",
+    "src/args.c",
     "src/io.c",
     "src/memory.c",
     "src/base.c",
     "src/diag.c",
     "src/type-pool.c",
+    "src/test-runner.c",
     "src/analyzer.c",
     "src/parser/parser.c",
     "src/gen/c_cpp.c",

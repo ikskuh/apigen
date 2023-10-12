@@ -3,6 +3,7 @@
 #include <setjmp.h>
 
 #include "apigen.h"
+#include "apigen-internals.h"
 #include "unittest.h"
 
 #define C_BLK "\x1B[0;30m"
@@ -15,9 +16,6 @@
 #define C_WHT "\x1B[0;37m"
 #define C_DIM "\x1B[0;2m"
 #define C_OFF "\x1B[0m"
-
-extern void * (*apigen_memory_alloc_backend)(size_t);
-extern void (*apigen_memory_free_backend)(void*);
 
 static size_t allocation_count = 0;
 static void * test_malloc(size_t size)
@@ -74,6 +72,8 @@ void APIGEN_NORETURN APIGEN_WEAK apigen_panic(char const *msg)
 {
     if(!problem_expected(UNITTEST_PANIC)) {
         (void)fprintf(stderr, C_RED "PANIC:" C_OFF " %s", msg);
+
+        apigen_dump_stack_trace();
     }
     longjmp(apigen_unittest_returnpoint, SETJMP_PANIC);    
 }
@@ -138,6 +138,8 @@ int main(int argc, char ** argv)
 {
     (void)argc;
     (void)argv;
+
+    apigen_enable_debug_diagnostics();
 
     size_t ok_count = 0;
 

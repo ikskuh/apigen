@@ -1,4 +1,5 @@
 #include "apigen.h"
+#include "apigen-internals.h"
 
 #include <stdalign.h>
 #include <stdlib.h>
