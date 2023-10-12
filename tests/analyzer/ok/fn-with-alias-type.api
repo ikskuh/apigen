@@ -1,0 +1,10 @@
+// Tests that the analyzer can handle two aliased types also in function return types
+
+
+type SDL_TouchID = i64;
+
+type SDL_bool = bool;
+
+fn SDL_GetTouchDevice(index: c_int) SDL_TouchID;
+
+fn SDL_RemoveTimer(id: c_int) SDL_bool;

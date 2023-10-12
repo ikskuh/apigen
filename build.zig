@@ -84,6 +84,7 @@ pub fn build(b: *std.Build) void {
             run.addFileSourceArg(.{ .path = test_file });
             run.addCheck(.{ .expect_term = .{ .Exited = 0 } });
             run.stdin = .{ .bytes = "" };
+            run.has_side_effects = true;
             test_step.dependOn(&run.step);
         }
 
@@ -93,6 +94,7 @@ pub fn build(b: *std.Build) void {
             run.addFileSourceArg(.{ .path = test_file });
             run.addCheck(.{ .expect_term = .{ .Exited = 0 } });
             run.stdin = .{ .bytes = "" };
+            run.has_side_effects = true;
             test_step.dependOn(&run.step);
         }
 
@@ -186,6 +188,7 @@ pub fn build(b: *std.Build) void {
             );
 
             const unit_test_run = b.addRunArtifact(test_runner);
+            unit_test_run.has_side_effects = true;
 
             test_step.dependOn(&unit_test_run.step);
             unittest_step.dependOn(&unit_test_run.step);
@@ -236,7 +239,7 @@ const parser_test_files = [_][]const u8{
 
     // extra
     "tests/parser/paxfuncs.api",
-} ++ general_examples;
+} ++ general_examples ++ analyzer_positive_files;
 
 const analyzer_positive_files = [_][]const u8{
     "tests/analyzer/ok/empty.api",
@@ -260,6 +263,7 @@ const analyzer_positive_files = [_][]const u8{
     "tests/analyzer/ok/include.api",
     "tests/analyzer/ok/nested-include.api",
     "tests/analyzer/ok/empty-include.api",
+    "tests/analyzer/ok/fn-with-alias-type.api",
 };
 
 const analyzer_negative_files = [_][]const u8{

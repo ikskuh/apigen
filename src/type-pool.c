@@ -127,6 +127,8 @@ static bool apigen_is_type_unique(enum apigen_TypeId id) {
         case apigen_typeid_enum:   return true;
         case apigen_typeid_struct: return true;
         case apigen_typeid_union:  return true;
+        case apigen_typeid_alias:  return true; // aliased types are unique types that cannot be "replaced" with other types for now.
+        // TODO: introduce concept of unique type aliases and "forward aliases"
         default:                   return false;
     }
 }

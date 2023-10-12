@@ -750,9 +750,10 @@ bool apigen_render_c(struct apigen_Stream const stream, struct apigen_MemoryAren
         if(decl.requires_forward_decl) {
 
             switch(unalias(type)->id) {
-                case apigen_typeid_enum: apigen_io_write(stream, "enum ", 5); break;
+                case apigen_typeid_enum:   apigen_io_write(stream, "enum ", 5); break;
                 case apigen_typeid_struct: apigen_io_write(stream, "struct ", 7); break;
-                case apigen_typeid_union: apigen_io_write(stream, "union ", 6); break;
+                case apigen_typeid_union:  apigen_io_write(stream, "union ", 6); break;
+                case apigen_typeid_opaque: apigen_io_write(stream, "typedef void ", 13); break;
                 default: APIGEN_UNREACHABLE();
             }
             render_identifier(stream, ID_KEEP, type->name, true);
